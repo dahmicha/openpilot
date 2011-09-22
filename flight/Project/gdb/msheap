@@ -1,0 +1,40 @@
+#
+# Debug macros for MSHEAP
+#
+
+define showheap
+	printf "HEAP: %p - %p, %u free\n", heap_base, heap_limit, heap_free
+	set $cursor = (marker_t)heap_base
+	while $cursor < heap_limit
+
+		printf "  %p: ", $cursor
+
+		# check tail copy of the region descriptor
+		set $next = $cursor + $cursor->next.size
+		if $cursor->next.size < 1
+			printf "CORRUPT (size %u too small)\n", $cursor->next.size
+			loop_break
+		end			
+		if ($next < heap_base) || ($next > heap_limit)
+			printf "CORRUPT (size %u reaches outside heap)\n", $cursor->next.size
+			loop_break
+		end
+		if $next->prev.size != $cursor->next.size
+			printf "CORRUPT (head %p size %u tail %p size %u)\n", $cursor, $cursor->next.size, $tail, $tail->next.size
+			loop_break
+		end
+		if $next->prev.free != $cursor->next.free
+			printf "CORRUPT (head %p free %u tail %p free %u)\n", $cursor, $cursor->next.free, $tail, $tail->next.free
+			loop_break
+		end
+
+		printf "%p %u", $cursor + 1, ($cursor->next.size - 1) * sizeof(*$cursor)
+		if $cursor->next.free
+			printf " free"
+		end
+		printf "\n"
+
+		set $cursor = $next
+	end
+end
+

@@ -23,14 +23,14 @@
 #ifndef DCC_STDIO_H
 #define DCC_STDIO_H
 
-void dbg_trace_point(unsigned long number);
+void dbg_trace_point(unsigned long number) __attribute__((no_instrument_function));
 
-void dbg_write_u32(const unsigned long *val, long len);
-void dbg_write_u16(const unsigned short *val, long len);
-void dbg_write_u8(const unsigned char *val, long len);
+void dbg_write_u32(const unsigned long *val, long len) __attribute__((no_instrument_function));
+void dbg_write_u16(const unsigned short *val, long len) __attribute__((no_instrument_function));
+void dbg_write_u8(const unsigned char *val, long len) __attribute__((no_instrument_function));
 
-void dbg_write_str(const char *msg);
-void dbg_write_char(char msg);
-void dbg_write_hex32(const unsigned long val);
+void dbg_write_str(const char *msg) __attribute__((no_instrument_function));
+void dbg_write_char(char msg) __attribute__((no_instrument_function));
+void dbg_write_hex32(const unsigned long val) __attribute__((no_instrument_function));
 
 #endif	/* DCC_STDIO_H */

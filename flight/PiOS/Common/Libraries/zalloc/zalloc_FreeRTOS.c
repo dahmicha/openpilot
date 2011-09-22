@@ -45,19 +45,17 @@ extern void vApplicationMallocFailedHook(void) __attribute__((weak));
 
 /*
  * Mutual exclusion support for the allocator.
- *
- * Note that xTaskResumeAll is pretty heavyweight.  We might be better off with a mutex.
  */
 void
 zlock(void)
 {
-	vTaskSuspendAll();
+	vPortEnterCritical();
 }
 
 void
 zunlock(void)
 {
-	xTaskResumeAll();
+	vPortExitCritical();
 }
 
 void *

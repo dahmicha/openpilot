@@ -45,25 +45,17 @@
 
 /* Local Variables */
 #define INIT_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// max priority
-#define INIT_TASK_STACK		(1024 / 4)
-static xTaskHandle mainTaskHandle;
+#define INIT_TASK_STACK		(1024 / 4)										// XXX this seems excessive
+static xTaskHandle initTaskHandle;
 
 /* Function Prototypes */
-//int32_t CONSOLE_Parse(uint8_t port, char c);
-//void OP_ADC_NotifyChange(uint32_t pin, uint32_t pin_value);
-static void mainTask(void *parameters);
+static void initTask(void *parameters);
 
 /* Prototype of generated InitModules() function */
 extern void InitModules(void);
 
 /* Prototype of PIOS_Board_Init() function */
 extern void PIOS_Board_Init(void);
-
-/* bounds of the init stack courtesy of the linker script */
-extern char	_init_stack_top, _init_stack_end;
-
-/* external helper that swaps the current stack to the interrupt stack */
-extern void Stack_Change(void);
 
 int
 main()
@@ -76,16 +68,13 @@ main()
 	/* core PIOS init */
 	PIOS_SYS_Init();
 
-	/* swap to the interrupt stack so that when xTaskGenericCreate clears the init stack we aren't clobbered */
-	//Stack_Change();
-
-	/* create the init thread */
-	result = xTaskCreate(mainTask,
-						(const signed char *)"main",
-						1024 / 4,	// XXX this seems excessive
+	/* create the init task */
+	result = xTaskCreate(initTask,
+						(const signed char *)"init",
+						INIT_TASK_STACK,
 						NULL,
 						INIT_TASK_PRIORITY,
-						&mainTaskHandle);
+						&initTaskHandle);
 	PIOS_Assert(result == pdPASS);
 
 	/* Start the FreeRTOS scheduler */
@@ -105,16 +94,12 @@ main()
 }
 
 /**
-* OpenPilot Main function:
-*
-* Initialize PiOS<BR>
-* Create the "System" task (SystemModInitializein Modules/System/systemmod.c) <BR>
-* Start FreeRTOS Scheduler (vTaskStartScheduler)<BR>
-* If something goes wrong, blink LED1 and LED2 every 100ms
-*
-*/
+ * Initialisation task.
+ *
+ * Runs board and module initialisation, then terminates.
+ */
 void
-mainTask(void *parameters)
+initTask(void *parameters)
 {
 	/* board driver init */
 	PIOS_Board_Init();
@@ -122,7 +107,7 @@ mainTask(void *parameters)
 	/* Initialize modules */
 	MODULE_INITIALISE_ALL;
 
-	/* suspend this task indefinitely */
+	/* terminate this task */
 	vTaskDelete(NULL);
 }
 

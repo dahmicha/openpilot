@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.0 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.0.1 - Copyright (C) 2011 Real Time Engineers Ltd.
 	
 
 	FreeRTOS supports many tools and architectures. V7.0.0 is sponsored by:
@@ -60,6 +60,8 @@
 #ifndef PROJDEFS_H
 #define PROJDEFS_H
 
+void PIOS_DEBUG_PinValue8Bit(unsigned char value);
+
 /* Defines the prototype to which task functions must conform. */
 typedef void (*pdTASK_CODE)( void * );
 
@@ -76,6 +78,9 @@ typedef void (*pdTASK_CODE)( void * );
 #define errNO_TASK_TO_RUN						( -2 )
 #define errQUEUE_BLOCKED						( -4 )
 #define errQUEUE_YIELD							( -5 )
+
+// Uncomment this line to output the second character of the task that is being switched in on the debug-pins
+//#define traceTASK_SWITCHED_IN() PIOS_DEBUG_PinValue8Bit(pxCurrentTCB->pcTaskName[1]);
 
 #endif /* PROJDEFS_H */
 

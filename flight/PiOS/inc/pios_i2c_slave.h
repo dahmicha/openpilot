@@ -25,11 +25,12 @@ struct pios_i2c_slave_txn {
 	uint8_t		*buf;
 };
 
-typedef void (* pios_i2c_slave_callback)(uint32_t i2c_id, pios_i2c_slave_event event, uint32_t arg);
+typedef void (* pios_i2c_slave_callback)(uint32_t i2c_id, enum pios_i2c_slave_event event, uint32_t arg);
 
 extern int	PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg);
+extern void PIOS_I2C_Slave_Open(uint32_t i2c_id, pios_i2c_slave_callback callback);
 extern void	PIOS_I2C_SLAVE_Enable(uint32_t i2c_id, bool enabled);
-extern void PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, pios_i2c_slave_txn txn_list[], uint32_t num_txns);
+extern void PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, struct pios_i2c_slave_txn txn_list[], uint32_t num_txns);
 
 extern void PIOS_I2C_SLAVE_EV_IRQ_Handler(uint32_t i2c_id);
 extern void PIOS_I2C_SLAVE_ER_IRQ_Handler(uint32_t i2c_id);

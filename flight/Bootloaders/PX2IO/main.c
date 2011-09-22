@@ -37,18 +37,15 @@
 
 extern void PIOS_Board_Init(void);
 
-
-/* Private typedef -----------------------------------------------------------*/
 typedef void	(*pFunction)(void);
 pFunction		Jump_To_Application;
 uint32_t		JumpAddress;
 
-/* Function Prototypes */
 void			jump_to_app();
 uint8_t			jumpFW = FALSE;
 
 /**
- * @brief Bootloader Main function
+ * @brief Startup logic.
  */
 int main()
 {
@@ -64,11 +61,8 @@ int main()
 	if (GPIO_ReadInputDataBit(GPIO_PORT_SafetySwitch, GPIO_PIN_SafetySwitch) == Bit_SET) {
 		boot_app = false;
 
-		/* blink the safety switch LED to tell the user we got their request */
-		for (int i = 0; i < 20; i++) {
-			PIOS_LED_Toggle(LED3);
-			PIOS_DELAY_WaitmS(50);
-		}
+		/* turn on the safety switch LED to tell the user that we got their request */
+		PIOS_LED_On(LED3);
 	}
 
 	/* check for program-requested update mode */

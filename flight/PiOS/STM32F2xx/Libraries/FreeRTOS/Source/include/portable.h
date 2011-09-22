@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.0 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.0.1 - Copyright (C) 2011 Real Time Engineers Ltd.
 	
 
 	FreeRTOS supports many tools and architectures. V7.0.0 is sponsored by:
@@ -350,9 +350,9 @@ extern "C" {
  *
  */
 #if( portUSING_MPU_WRAPPERS == 1 )
-	portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE pxCode, void *pvParameters, portBASE_TYPE xRunPrivileged ) PRIVILEGED_FUNCTION;
+	portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_TYPE *pxStartOfStack, pdTASK_CODE pxCode, void *pvParameters, portBASE_TYPE xRunPrivileged ) PRIVILEGED_FUNCTION;
 #else
-	portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE pxCode, void *pvParameters );
+	portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_TYPE *pxStartOfStack, pdTASK_CODE pxCode, void *pvParameters );
 #endif
 
 /*

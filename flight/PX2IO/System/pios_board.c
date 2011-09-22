@@ -22,6 +22,7 @@
 #include <pios_usart_priv.h>
 #include <pios_rtc_priv.h>
 #include <pios_rcvr_priv.h>
+#include <pios_i2c_slave.h>
 
 /*
  * Clocking
@@ -44,7 +45,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
   .regs = USART1,
   .init = {
 	.USART_BaudRate            = PIOS_COM_AUX_BAUDRATE,
-    .USART_BaudRate            = 115200,
     .USART_WordLength          = USART_WordLength_8b,
     .USART_Parity              = USART_Parity_No,
     .USART_StopBits            = USART_StopBits_1,
@@ -52,7 +52,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
     .USART_Mode                = USART_Mode_Rx | USART_Mode_Tx,
   },
   .irq = {
-    .handler = NULL,
     .init    = {
       .NVIC_IRQChannel                   = USART1_IRQn,
       .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
@@ -60,7 +59,6 @@ const struct pios_usart_cfg pios_usart_aux_cfg = {
       .NVIC_IRQChannelCmd                = ENABLE,
     },
   },
-  .remap = GPIO_Remap_USART1,
   .rx   = {
     .gpio = GPIOA,
     .init = {
@@ -167,7 +165,7 @@ const struct pios_servo_cfg pios_servo_cfg = {
 	.num_channels = NELEMENTS(pios_servo_channels),
 };
 
-
+#if defined(PIOS_INCLUDE_PPM)
 /*
  * PPM Input
  */
@@ -195,7 +193,6 @@ const struct pios_ppm_cfg pios_ppm_cfg = {
 	},
 	.remap = 0,
 	.irq = {
-		.handler = TIM1_CC_IRQHandler,
 		.init    = {
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
 			.NVIC_IRQChannelSubPriority        = 0,
@@ -211,6 +208,7 @@ void PIOS_TIM1_CC_irq_handler()
 {
 	PIOS_PPM_irq_handler();
 }
+#endif
 
 #if defined(PIOS_INCLUDE_RTC)
 /*
@@ -224,7 +222,6 @@ static const struct pios_rtc_cfg pios_rtc_main_cfg = {
 	.clksrc = RCC_RTCCLKSource_HSE_Div128,
 	.prescaler = 100,
 	.irq = {
-		.handler = NULL,
 		.init = {
 			.NVIC_IRQChannel                   = RTC_IRQn,
 			.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_MID,
@@ -242,6 +239,72 @@ void PIOS_RTC_IRQ_Handler (void)
 #endif
 
 
+/*
+ * I2C slave interface
+ */
+static uint32_t	pios_i2c_slave_id = 0;
+static void
+I2C_SLAVE_EV_IRQ_Handler(void)
+{
+	PIOS_I2C_SLAVE_EV_IRQ_Handler(pios_i2c_slave_id);
+}
+void I2C1_EV_IRQHandler() __attribute__((alias ("I2C_SLAVE_EV_IRQ_Handler")));
+
+static void
+I2C_SLAVE_ER_IRQ_Handler(void)
+{
+	PIOS_I2C_SLAVE_ER_IRQ_Handler(pios_i2c_slave_id);
+}
+void I2C1_ER_IRQHandler() __attribute__((alias ("I2C_SLAVE_ER_IRQ_Handler")));
+
+static const struct pios_i2c_adapter_cfg i2c_slave_cfg = {
+		.regs	= I2C1,
+		.init = {
+				.I2C_Mode					= I2C_Mode_I2C,
+				.I2C_OwnAddress1			= 0x11,
+				.I2C_Ack					= I2C_Ack_Enable,
+				.I2C_AcknowledgedAddress	= I2C_AcknowledgedAddress_7bit,
+				.I2C_DutyCycle				= I2C_DutyCycle_2,
+				.I2C_ClockSpeed				= 400000,
+		},
+		.transfer_timeout_ms = 50,
+		.transfer_timeout_ms = 50,
+		.scl = {
+				.gpio = GPIOB,
+				.init = {
+						.GPIO_Pin   = GPIO_Pin_10,
+						.GPIO_Speed = GPIO_Speed_10MHz,
+						.GPIO_Mode  = GPIO_Mode_AF_OD,
+				},
+		},
+		.sda = {
+				.gpio = GPIOB,
+				.init = {
+						.GPIO_Pin   = GPIO_Pin_11,
+						.GPIO_Speed = GPIO_Speed_10MHz,
+						.GPIO_Mode  = GPIO_Mode_AF_OD,
+				},
+		},
+		.event = {
+				.flags   = 0,		/* FIXME: check this */
+				.init = {
+						.NVIC_IRQChannel                   = I2C2_EV_IRQn,
+						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+						.NVIC_IRQChannelSubPriority        = 0,
+						.NVIC_IRQChannelCmd                = ENABLE,
+				},
+		},
+		.error = {
+				.flags   = 0,		/* FIXME: check this */
+				.init = {
+						.NVIC_IRQChannel                   = I2C2_ER_IRQn,
+						.NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGHEST,
+						.NVIC_IRQChannelSubPriority        = 0,
+						.NVIC_IRQChannelCmd                = ENABLE,
+				},
+		},
+};
+
 uint32_t pios_com_aux_id;
 #if defined(PIOS_INCLUDE_SPEKTRUM)
 uint32_t pios_com_spektrum_id;
@@ -255,7 +318,6 @@ uint32_t pios_rcvr_max_channel;
  */
 void PIOS_Board_Init(void)
 {
-	uint32_t	rcvr_id;
 
 	/* Delay system */
 	PIOS_DELAY_Init();	
@@ -263,36 +325,50 @@ void PIOS_Board_Init(void)
 	/* Initialize UAVObject libraries */
 //	EventDispatcherInitialize();
 //	UAVObjInitialize();
-//	UAVObjectsInitializeAll();
+//	HwSettingsInitialize();
+//	ManualControlSettingsInitialize();
 
 #if defined(PIOS_INCLUDE_RTC)
 	/* Initialize the real-time clock and its associated tick */
-	//XXX
-	//PIOS_RTC_Init(&pios_rtc_main_cfg);
-#else
-#warning Need RTC for PPM
+	PIOS_RTC_Init(&pios_rtc_main_cfg);
 #endif
 	
+	/* Initialize the alarms library */
+//	AlarmsInitialize();
+
+	/* Initialize the task monitor library */
+//	TaskMonitorInitialize();
+
+	/* Bring up the I2C slave interface */
+	PIOS_I2C_Slave_Init(pios_i2c_slave_id, &i2c_slave_cfg);
+
 #if 0 // XXX this is all very wrong now
 #if defined(PIOS_INCLUDE_SBUS)
-	// XXX need to do this
-	PIOS_SBUS_Init(&pios_sbus_cfg);
+		{
+			uint32_t pios_usart_sbus_id;
+			if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart_sbus_main_cfg)) {
+				PIOS_Assert(0);
+			}
 
-	uint32_t pios_usart_sbus_id;
-	if (PIOS_USART_Init(&pios_usart_sbus_id, &pios_usart_sbus_main_cfg)) {
-		PIOS_Assert(0);
-	}
+			uint32_t pios_sbus_id;
+			if (PIOS_SBUS_Init(&pios_sbus_id, &pios_sbus_cfg, &pios_usart_com_driver, pios_usart_sbus_id)) {
+				PIOS_Assert(0);
+			}
+		}
 #endif	/* PIOS_INCLUDE_SBUS */
 #if defined(PIOS_INCLUDE_SPEKTRUM)
-	/* SPEKTRUM init must come before comms */
-	PIOS_SPEKTRUM_Init(&pios_spektrum_cfg, false);
+		{
+			uint32_t pios_usart_spektrum_id;
+			if (PIOS_USART_Init(&pios_usart_spektrum_id, &pios_usart_spektrum_main_cfg)) {
+				PIOS_Assert(0);
+			}
 
-	uint32_t pios_usart_spektrum_id;
-
-	if (PIOS_USART_Init(&pios_usart_spektrum_id, &pios_usart_spektrum_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-#endif
+			uint32_t pios_spektrum_id;
+			if (PIOS_SPEKTRUM_Init(&pios_spektrum_id, &pios_spektrum_main_cfg, &pios_usart_com_driver, pios_usart_spektrum_id, 0)) {
+				PIOS_Assert(0);
+			}
+		}
+#endif	/* PIOS_INCLUDE_SPEKTRUM */
 #endif
 
 #if defined(PIOS_COM_AUX)
@@ -300,8 +376,13 @@ void PIOS_Board_Init(void)
 	if (PIOS_USART_Init(&pios_usart_aux_id, &pios_usart_aux_cfg)) {
 		PIOS_DEBUG_Assert(0);
 	}
-	if (PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, pios_usart_aux_id)) {
-		PIOS_DEBUG_Assert(0);
+	static uint8_t rx_buffer[128];
+	static uint8_t tx_buffer[128];
+
+	if (PIOS_COM_Init(&pios_com_aux_id, &pios_usart_com_driver, pios_usart_aux_id,
+			  rx_buffer, 128,
+			  tx_buffer, 128)) {
+		PIOS_Assert(0);
 	}
 #endif
 	PIOS_COM_SendFormattedString(PIOS_COM_AUX, "PX2IO starting...\r\n");
@@ -310,20 +391,56 @@ void PIOS_Board_Init(void)
 //	PIOS_ADC_INIT();
 	PIOS_GPIO_Init();
 
+	/* Configure the selected receiver */
+	/* XXX we don't have these settings until we have config from FMU ... */
 #if defined(PIOS_INCLUDE_PPM)
-	// XXX in theory we need to do this... but why?  This is crap.  It should be somewhere very far from here.
-	//uint8_t inputmode;
-	//ManualControlSettingsInputModeGet(&inputmode);
-	PIOS_PPM_Init();
-	if (PIOS_RCVR_Init(&rcvr_id, &pios_ppm_rcvr_driver, 0)) {
-		PIOS_Assert(0);
-	}
-	for (uint8_t i = 0; i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map); i++) {
-		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = rcvr_id;
-		pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
-		pios_rcvr_max_channel++;
-	}
+#if !defined(PIOS_INCLUDE_RTC)
+# error PPM requires RTC
 #endif
+		PIOS_PPM_Init();
+		uint32_t pios_ppm_rcvr_id;
+		if (PIOS_RCVR_Init(&pios_ppm_rcvr_id, &pios_ppm_rcvr_driver, 0)) {
+			PIOS_Assert(0);
+		}
+		for (uint8_t i = 0;
+		     i < PIOS_PPM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+		     i++) {
+			pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_ppm_rcvr_id;
+			pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+			pios_rcvr_max_channel++;
+		}
+#endif	/* PIOS_INCLUDE_PPM */
+#if defined(PIOS_INCLUDE_SPEKTRUM)
+		if (hwsettings_cc_mainport == HWSETTINGS_CC_MAINPORT_SPEKTRUM ||
+		    hwsettings_cc_flexiport == HWSETTINGS_CC_FLEXIPORT_SPEKTRUM) {
+			uint32_t pios_spektrum_rcvr_id;
+			if (PIOS_RCVR_Init(&pios_spektrum_rcvr_id, &pios_spektrum_rcvr_driver, 0)) {
+				PIOS_Assert(0);
+			}
+			for (uint8_t i = 0;
+			     i < PIOS_SPEKTRUM_NUM_INPUTS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+			     i++) {
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_spektrum_rcvr_id;
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+				pios_rcvr_max_channel++;
+			}
+		}
+#endif	/* PIOS_INCLUDE_SPEKTRUM */
+#if defined(PIOS_INCLUDE_SBUS)
+		if (hwsettings_cc_mainport == HWSETTINGS_CC_MAINPORT_SBUS) {
+			uint32_t pios_sbus_rcvr_id;
+			if (PIOS_RCVR_Init(&pios_sbus_rcvr_id, &pios_sbus_rcvr_driver, 0)) {
+				PIOS_Assert(0);
+			}
+			for (uint8_t i = 0;
+			     i < SBUS_NUMBER_OF_CHANNELS && pios_rcvr_max_channel < NELEMENTS(pios_rcvr_channel_to_id_map);
+			     i++) {
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].id = pios_sbus_rcvr_id;
+				pios_rcvr_channel_to_id_map[pios_rcvr_max_channel].channel = i;
+				pios_rcvr_max_channel++;
+			}
+		}
+#endif  /* PIOS_INCLUDE_SBUS */
 
 	//PIOS_WDG_Init();
 }

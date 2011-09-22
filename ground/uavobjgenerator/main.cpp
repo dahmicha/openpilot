@@ -34,6 +34,7 @@
 #include "generators/gcs/uavobjectgeneratorgcs.h"
 #include "generators/matlab/uavobjectgeneratormatlab.h"
 #include "generators/python/uavobjectgeneratorpython.h"
+#include "generators/mavlink/uavobjectgeneratormavlink.h"
 
 #define RETURN_ERR_USAGE 1
 #define RETURN_ERR_XML 2
@@ -52,6 +53,7 @@ void usage() {
     cout << "\t-java          build java code" << endl;
     cout << "\t-python        build python code" << endl;
     cout << "\t-matlab        build matlab code" << endl;
+    cout << "\t-mavlink       build mavlink adapter code" << endl;
     cout << "\tIf no language is specified ( and not -none ) -> all are built." << endl;
     cout << "Misc: "<< endl;
     cout << "\t-none          build no language - just parse xml's" << endl;

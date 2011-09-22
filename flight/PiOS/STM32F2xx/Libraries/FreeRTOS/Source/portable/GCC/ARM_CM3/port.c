@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.0 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.0.1 - Copyright (C) 2011 Real Time Engineers Ltd.
 	
 
     ***************************************************************************
@@ -97,33 +97,40 @@ static void prvSetupTimerInterrupt( void );
 /*
  * Exception handlers.
  */
-void xPortPendSVHandler( void ) __attribute__ (( naked ));
-void xPortSysTickHandler( void );
-void vPortSVCHandler( void ) __attribute__ (( naked ));
+void xPortPendSVHandler( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
+void xPortSysTickHandler( void ) __attribute__((no_instrument_function));
+void vPortSVCHandler( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
 
 /*
  * Start first task is a separate function so it can be tested in isolation.
  */
-void vPortStartFirstTask( void ) __attribute__ (( naked ));
+void vPortStartFirstTask( void ) __attribute__ (( naked )) __attribute__((no_instrument_function));
 
 /*-----------------------------------------------------------*/
 
 /*
  * See header file for description.
  */
-portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE pxCode, void *pvParameters )
+portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, portSTACK_TYPE *pxStartOfStack, pdTASK_CODE pxCode, void *pvParameters )
 {
-	/* Simulate the stack frame as it would be created by a context switch
-	interrupt. */
-	pxTopOfStack--; /* Offset added to account for the way the MCU uses the stack on entry/exit of interrupts. */
-	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
-	pxTopOfStack--;
-	*pxTopOfStack = ( portSTACK_TYPE ) pxCode;	/* PC */
-	pxTopOfStack--;
-	*pxTopOfStack = 0;	/* LR */
-	pxTopOfStack -= 5;	/* R12, R3, R2 and R1. */
-	*pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* R0 */
-	pxTopOfStack -= 8;	/* R11, R10, R9, R8, R7, R6, R5 and R4. */
+	/* Simulate the stack frame as it would be created by a context switch interrupt. */
+	/* Offset added to account for the way the MCU uses the stack on entry/exit of interrupts. */
+	*--pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pxCode;	/* PC */
+	*--pxTopOfStack = 0;	/* LR */
+	*--pxTopOfStack = 0;	/* R12 */
+	*--pxTopOfStack = 0;	/* R3 */
+	*--pxTopOfStack = 0;	/* R2 */
+	*--pxTopOfStack = 0;	/* R1 */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pvParameters;	/* R0 */
+	*--pxTopOfStack = 0;	/* R11 */
+	*--pxTopOfStack = ( portSTACK_TYPE ) pxStartOfStack; /* R10 */
+	*--pxTopOfStack = 0;	/* R9 */
+	*--pxTopOfStack = 0;	/* R8 */
+	*--pxTopOfStack = 0;	/* R7 */
+	*--pxTopOfStack = 0;	/* R6 */
+	*--pxTopOfStack = 0;	/* R5 */
+	*--pxTopOfStack = 0;	/* R4 */
 
 	return pxTopOfStack;
 }
@@ -280,4 +287,32 @@ void prvSetupTimerInterrupt( void )
 	*(portNVIC_SYSTICK_CTRL) = portNVIC_SYSTICK_CLK | portNVIC_SYSTICK_INT | portNVIC_SYSTICK_ENABLE;
 }
 /*-----------------------------------------------------------*/
+
+void	__cyg_profile_func_enter(void *func, void *caller) __attribute__((naked, no_instrument_function));
+void	__cyg_profile_func_exit(void *func, void *caller)  __attribute__((naked, no_instrument_function));
+
+void
+__cyg_profile_func_enter(void *func, void *caller)
+{
+    asm volatile (
+        "    mrs    r2, ipsr        \n"
+        "    cmp    r2, #0          \n"
+        "    bne    L__out          \n"             /* ignore this test if we are in interrupt mode */
+        "    cmp    sp, r10         \n"
+        "    bgt    L__out          \n"             /* stack is above limit and thus OK */
+        "    mov    r2, #0xac       \n"             /* force a hard fault with a distinctive address 0x57ac ('stac') */
+	"    add    r2, r2, #0x5700 \n"
+	"    ldr    r2, [r2]        \n"
+        "    b      .               \n"
+        "L__out:                    \n"
+        "    bx     lr              \n"
+    );
+}
+
+void
+__cyg_profile_func_exit(void *func, void *caller)
+{
+	asm volatile("bx lr");
+}
+
 

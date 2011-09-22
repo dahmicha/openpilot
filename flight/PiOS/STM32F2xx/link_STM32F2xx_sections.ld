@@ -71,21 +71,24 @@ SECTIONS
 	} > BD_INFO
 
     /*
-     * Place the IRQ/bootstrap stack at the bottom of SRAM so that an overflow
-     * results in a hard fault.
-     */
-    .irq_stack :
-    {
+   	 * Place the IRQ/bootstrap stack at the bottom of SRAM so that an overflow
+   	 * results in a hard fault.
+   	 */
+   	.istack (NOLOAD) :
+   	{
+   		. = ALIGN(4);
     	_irq_stack_end = . ;
     	*(.irqstack)
     	_irq_stack_top = . ;
-    } > SRAM
+	} > SRAM
+	
 
 	/*
 	 * Non-const initialised data.
 	 */
     .data : AT (_sidata)
     {
+        . = ALIGN(4);
         _sdata = .;
         *(.data .data.*)
         . = ALIGN(4);
@@ -110,7 +113,6 @@ SECTIONS
     .heap (NOLOAD) :
     {
         . = ALIGN(4);
-        _heap = ABSOLUTE(.);
         _sheap = . ;
         
         /*
@@ -120,12 +122,9 @@ SECTIONS
          */
         *(.heap)
         
-        /* fill to the end of SRAM */
-        . = ORIGIN(SRAM) + LENGTH(SRAM) - _heap ;
-        . = ALIGN(4) ;
-        
         /* extend the heap up to the top of SRAM */
-        _eheap = . ;
+        . = ORIGIN(SRAM) + LENGTH(SRAM) - ABSOLUTE(_sheap);
+        _eheap = .;
     } > SRAM
 
     /* Stabs debugging sections.  */

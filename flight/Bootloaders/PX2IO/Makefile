@@ -36,7 +36,7 @@ OUTDIR := $(TOP)/build/$(TARGET)
 DEBUG ?= NO
 
 # Set to YES when using Code Sourcery toolchain
-CODE_SOURCERY ?= YES
+CODE_SOURCERY ?= NO
 
 ifeq ($(CODE_SOURCERY), YES)
 REMOVE_CMD = cs-rm
@@ -75,6 +75,8 @@ SRC += $(PX2IO_BL)/i2c_fsm.c
 #SRC += $(PX2IO_BL)/dcc_stdio.c
 
 ## PIOS Hardware (STM32F10x)
+SRC += $(PIOSSTM32F10X)/startup.c
+SRC += $(PIOSSTM32F10X)/vectors_stm32f100.c
 SRC += $(PIOSSTM32F10X)/pios_sys.c
 SRC += $(PIOSSTM32F10X)/pios_led.c
 SRC += $(PIOSSTM32F10X)/pios_delay.c
@@ -119,7 +121,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F10X)/startup_stm32f100_$(MODEL)_BL.S
+ASRC =
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM = 
@@ -269,8 +271,8 @@ LDFLAGS += $(MATH_LIB)
 LDFLAGS += -lc -lgcc 
 
 # Set linker-script name depending on selected submodel name
-LDFLAGS += -T$(LINKERSCRIPTPATH)/link_$(BOARD)_memory.ld
-LDFLAGS += -T$(LINKERSCRIPTPATH)/link_$(BOARD)_BL_sections.ld
+LDFLAGS += -T$(LINKERSCRIPTPATH)/link_STM32F100_PX2IO_BL_memory.ld
+LDFLAGS += -T$(LINKERSCRIPTPATH)/link_STM32F1xx_sections.ld
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f

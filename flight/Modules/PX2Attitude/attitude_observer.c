@@ -99,7 +99,7 @@ void attitude_observer_correct_gyro(float_vect3 gyros)
 
 void attitude_observer_correct_accel(float_vect3 accel, float fDeltaTime)
 {
-	float_vect3 state_accel_old;
+	static float_vect3 state_accel_old;
 	float_vect3 gyro_offset_calc;
 
 	if(fDeltaTime > 0)
@@ -127,7 +127,7 @@ void attitude_observer_correct_accel(float_vect3 accel, float fDeltaTime)
 
 void attitude_observer_correct_magnet(float_vect3 magnet, float fDeltaTime)
 {
-	float_vect3 state_magnet_old;
+	static float_vect3 state_magnet_old;
 	float_vect3 gyro_offset_calc;
 
 	if(fDeltaTime > 0)

@@ -30,6 +30,7 @@
  */
 
 #include "pios.h"
+#include "actuatorsettings.h"
 
 static xTaskHandle testTaskHandle;
 
@@ -151,7 +152,7 @@ testGyro(void)
 static void
 testMag(void)
 {
-	int16_t			sample[3];
+	struct pios_hmc5883_data sample;
 	int				samples;
 
 	puts("HMC5883...");
@@ -169,7 +170,7 @@ testMag(void)
 	samples = 0;
 	for (int i = 0; i < 100; i++) {
 		if (PIOS_HMC5883_NewDataAvailable()) {
-			PIOS_HMC5883_ReadMag(sample);
+			PIOS_HMC5883_ReadMag(&sample);
 			samples++;
 		}
 		PIOS_DELAY_WaitmS(10);
@@ -229,48 +230,67 @@ testBaro(void)
 static void
 testEEPROM(void)
 {
-	uint8_t	saved[4];
-	uint8_t	buf[4];
-	uint32_t addr;
-
 	puts("EEPROM...");
 	PIOS_EEPROM_Init();
-	addr = PIOS_I2C_EEPROM_SIZE - 4;
+	putln(" init done");
 
-	if (!PIOS_EEPROM_Read(addr, saved, 4)) {
-		putln("FAIL: backup");
-		return;
-	}
-	puts(" backup OK");
-	buf[0] = ~saved[0];
-	buf[1] = ~saved[1];
-	buf[2] = ~saved[2];
-	buf[3] = ~saved[3];
-	if (!PIOS_EEPROM_Write(addr, buf, 4)) {
-		putln(" FAIL: write");
-		return;
-	}
-	puts(" write OK");
-	buf[0] = buf[1] = buf[2] = buf[3] = 0x5a;
-	if (!PIOS_EEPROM_Read(addr, buf, 4)) {
-		putln("FAIL: readback");
-		return;
-	}
-	if ((buf[0] != (uint8_t)~saved[0]) ||
-		(buf[1] != (uint8_t)~saved[1]) ||
-		(buf[2] != (uint8_t)~saved[2]) ||
-		(buf[3] != (uint8_t)~saved[3])) {
-		println(" FAIL: miscompare (read:expect) %02x:%02x %02x:%02x %02x:%02x %02x:%02x",
-				buf[0], (uint8_t)~saved[0],
-				buf[1], (uint8_t)~saved[1],
-				buf[2], (uint8_t)~saved[2],
-				buf[3], (uint8_t)~saved[3]);
-		return;
-	}
-	puts(" compare OK");
-	if (!PIOS_EEPROM_Write(addr, saved, 4)) {
-		putln(" FAIL: restore");
-		return;
-	}
-	putln(" restore OK");
+//	UAVObjHandle handle = ActuatorSettingsHandle();
+//	  ObjectList *objEntry = (ObjectList *) obj;
+//
+//	  if (objEntry == NULL)
+//		    return -1;
+//
+//	  ObjectInstList *instEntry = getInstance(objEntry, instId);
+//
+//	  if (instEntry == NULL)
+//		    return -1;
+//
+//	  if (instEntry->data == NULL)
+//		    return -1;
+//
+//	  if (PIOS_FLASHFS_ObjSave(obj, instId, instEntry->data) != 0)
+//		    return -1;
+//
+//	uint8_t	saved[4];
+//	uint8_t	buf[4];
+//	uint32_t addr;
+//
+//	addr = PIOS_I2C_EEPROM_SIZE - 4;
+//
+//	if (!PIOS_EEPROM_Read(addr, saved, 4)) {
+//		putln("FAIL: backup");
+//		return;
+//	}
+//	puts(" backup OK");
+//	buf[0] = ~saved[0];
+//	buf[1] = ~saved[1];
+//	buf[2] = ~saved[2];
+//	buf[3] = ~saved[3];
+//	if (!PIOS_EEPROM_Write(addr, buf, 4)) {
+//		putln(" FAIL: write");
+//		return;
+//	}
+//	puts(" write OK");
+//	buf[0] = buf[1] = buf[2] = buf[3] = 0x5a;
+//	if (!PIOS_EEPROM_Read(addr, buf, 4)) {
+//		putln("FAIL: readback");
+//		return;
+//	}
+//	if ((buf[0] != (uint8_t)~saved[0]) ||
+//		(buf[1] != (uint8_t)~saved[1]) ||
+//		(buf[2] != (uint8_t)~saved[2]) ||
+//		(buf[3] != (uint8_t)~saved[3])) {
+//		println(" FAIL: miscompare (read:expect) %02x:%02x %02x:%02x %02x:%02x %02x:%02x",
+//				buf[0], (uint8_t)~saved[0],
+//				buf[1], (uint8_t)~saved[1],
+//				buf[2], (uint8_t)~saved[2],
+//				buf[3], (uint8_t)~saved[3]);
+//		return;
+//	}
+//	puts(" compare OK");
+//	if (!PIOS_EEPROM_Write(addr, saved, 4)) {
+//		putln(" FAIL: restore");
+//		return;
+//	}
+//	putln(" restore OK");
 }

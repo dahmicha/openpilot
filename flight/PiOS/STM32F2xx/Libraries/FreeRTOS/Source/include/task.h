@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.0 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.0.1 - Copyright (C) 2011 Real Time Engineers Ltd.
 	
 
 	FreeRTOS supports many tools and architectures. V7.0.0 is sponsored by:
@@ -76,7 +76,7 @@ extern "C" {
  * MACROS AND DEFINITIONS
  *----------------------------------------------------------*/
 
-#define tskKERNEL_VERSION_NUMBER "V7.0.0"
+#define tskKERNEL_VERSION_NUMBER "V7.0.1"
 
 /**
  * task. h
@@ -1099,18 +1099,6 @@ unsigned long ulTaskEndTrace( void ) PRIVILEGED_FUNCTION;
 
 /**
  * task.h
- * <PRE>unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask );</PRE>
- *
- * Returns the run time of selected task since the previous call (or task start).
- *
- * @param xTask Handle of the task from which run time is to be fetched.
- *
- * @return The run time of selected task
- */
-unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask );
-
-/**
- * task.h
  * <PRE>unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask );</PRE>
  *
  * INCLUDE_uxTaskGetStackHighWaterMark must be set to 1 in FreeRTOSConfig.h for
@@ -1128,6 +1116,19 @@ unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask );
  * since the task referenced by xTask was created.
  */
 unsigned portBASE_TYPE uxTaskGetStackHighWaterMark( xTaskHandle xTask ) PRIVILEGED_FUNCTION;
+
+/**
+ * task.h
+ * <PRE>unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask );</PRE>
+ *
+ * Returns the run time of selected task
+ *
+ * @param xTask Handle of the task associated with the stack to be checked.
+ * Set xTask to NULL to check the stack of the calling task.
+ *
+ * @return The run time of selected task
+ */
+unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask );
 
 /* When using trace macros it is sometimes necessary to include tasks.h before
 FreeRTOS.h.  When this is done pdTASK_HOOK_CODE will not yet have been defined,

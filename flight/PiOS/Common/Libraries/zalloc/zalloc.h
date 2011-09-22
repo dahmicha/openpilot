@@ -23,6 +23,9 @@ extern void *calloc(size_t n1, size_t n2);
 extern void *realloc(void *ptr, size_t size);
 extern void *reallocf(void *ptr, size_t size);
 
+/* malloc heap checker */
+extern void	malloc_heap_check(void);
+
 /**
  * Memory pool, from which memory can be allocated and to which it can be freed.
  */

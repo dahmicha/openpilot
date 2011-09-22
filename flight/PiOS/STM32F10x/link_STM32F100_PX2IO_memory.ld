@@ -1,0 +1,6 @@
+MEMORY
+{
+	BD_INFO (r)   : ORIGIN = 0x08002000 - 0x80, LENGTH =           0x00080
+	FLASH (rx)    : ORIGIN = 0x08002000,        LENGTH = 0x10000 - 0x02000
+	SRAM (rwx)    : ORIGIN = 0x20000000,        LENGTH = 0x02000
+}

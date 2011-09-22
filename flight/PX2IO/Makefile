@@ -27,10 +27,10 @@ include $(TOP)/make/firmware-defs.mk
 include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 
 # Target file name (without extension).
-TARGET				= $(BOARD_NAME)
+TARGET				= fw_$(BOARD_NAME)
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
-OUTDIR				= $(TOP)/build/px2io
+OUTDIR				= $(TOP)/build/fw_px2io
 
 # Set to YES to compile for debugging
 DEBUG				?= YES
@@ -49,7 +49,7 @@ USE_SPEKTRUM		?= NO	# not currently supported
 USE_SBUS			?= NO	# not currently supported
 
 # Set to YES when using Code Sourcery toolchain
-CODE_SOURCERY		?= YES
+CODE_SOURCERY		?= NO
 
 # Remove command is different for Code Sourcery on Windows
 ifeq ($(CODE_SOURCERY), YES)
@@ -69,6 +69,8 @@ PIOS			= ../PiOS
 PIOSINC			= $(PIOS)/inc
 PIOSSTM32F10X	= $(PIOS)/STM32F10x
 PIOSCOMMON		= $(PIOS)/Common
+PIOSCOMMONLIB	= $(PIOS)/Common/Libraries
+ZALLOCLIB		= $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS		= $(PIOS)/Boards
 APPLIBDIR		= $(PIOSSTM32F10X)/Libraries
 STMLIBDIR		= $(APPLIBDIR)
@@ -81,8 +83,6 @@ RTOSSRCDIR		= $(RTOSDIR)/Source
 RTOSINCDIR		= $(RTOSSRCDIR)/include
 DOXYGENDIR		= ../Doc/Doxygen
 
-# List C source files here. (C dependencies are automatically generated.)
-# use file-extension c for "c-only"-files
 
 ## Core
 SRC += $(OPSYSTEM)/main.c
@@ -91,11 +91,14 @@ SRC += $(OPSYSTEM)/cm3_fault_handlers.c
 SRC += $(OPSYSTEM)/dcc_stdio.c
 
 ## PIOS Hardware (STM32F10x)
+SRC += $(PIOSSTM32F10X)/startup.c
+SRC += $(PIOSSTM32F10X)/vectors_stm32f100.c
 SRC += $(PIOSSTM32F10X)/pios_sys.c
 SRC += $(PIOSSTM32F10X)/pios_led.c
 SRC += $(PIOSSTM32F10X)/pios_delay.c
 SRC += $(PIOSSTM32F10X)/pios_usart.c
 SRC += $(PIOSSTM32F10X)/pios_irq.c
+SRC += $(PIOSSTM32F10X)/pios_i2c_slave.c
 #SRC += $(PIOSSTM32F10X)/pios_adc.c  XXX we either need this or a replacement like the F2xx module
 SRC += $(PIOSSTM32F10X)/pios_servo.c
 SRC += $(PIOSSTM32F10X)/pios_ppm.c
@@ -139,7 +142,12 @@ SRC += $(RTOSSRCDIR)/tasks.c
 
 ## RTOS Portable
 SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
-SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
+
+## Better malloc/free
+SRC += $(ZALLOCLIB)/malloc.c
+SRC += $(ZALLOCLIB)/zalloc.c
+SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
 
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
@@ -162,7 +170,7 @@ CPPSRCARM =
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = $(PIOSSTM32F10X)/startup_stm32f100_$(MODEL)_OS.S
+ASRC =
 
 # List Assembler source files here which must be assembled in ARM-Mode..
 ASRCARM =
@@ -180,6 +188,7 @@ EXTRAINCDIRS  += $(PIOSBOARDS)
 EXTRAINCDIRS  += $(STMSPDINCDIR)
 EXTRAINCDIRS  += $(CMSISDIR)
 EXTRAINCDIRS  += $(RTOSINCDIR)
+EXTRAINCDIRS  += $(ZALLOCLIB)
 #EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 
@@ -290,8 +299,9 @@ ifeq ($(CODE_SOURCERY), YES)
 CFLAGS += -fpromote-loop-indices
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall 
 CFLAGS += -Werror
+CFLAGS += -finstrument-functions -ffixed-r10
 CFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 CFLAGS += -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 ifeq ($(DEBUG),NO)
@@ -320,14 +330,12 @@ MATH_LIB = -lm
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
-LDFLAGS += -lc
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
-LDFLAGS += -lc -lgcc
 
 # Set linker-script name depending on selected submodel name
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_$(BOARD)_memory.ld
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_$(BOARD)_sections.ld
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F100_PX2IO_memory.ld
+LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F1xx_sections.ld
 
 # ---------------------------------------------------------------------------
 

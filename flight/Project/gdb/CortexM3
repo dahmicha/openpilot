@@ -41,20 +41,52 @@ define hookpost-finish
 end
 
 define vecstate
-       set $icsr = *(uint32_t *)0xe000ed04
-       printf "vectactive %d  vectpending %d  isrpending %d\n", $icsr & 0xff, ($icsr >> 12) & 0xff, ($icsr >> 22) & 1
-       set $hfsr = *(uint32_t *)0xe000ed2c
-       printf "hardfault 0x%08 xforced %d  vector read error %d\n", $hfsr, ($hfsr >> 30) & 1, ($hfsr >> 1) & 1
-       set $cfsr = *(uint32_t *)0xE000ED28
-       set $ufsr = ($cfsr >> 16) & 0xffff
-       set $bfsr = ($cfsr >> 8) & 0xff
-       printf "usefault 0x%08x undef %d  align %d  divzero %d\n", $ufsr, $ufsr & 1, ($ufsr >> 8) & 1, ($ufsr >> 9) & 1
-       set $bfar = *(uint32_t *)0xe000ed38
-       printf "busfault 0x%08x prefetch %d  data %d  stack %d\n", $bfsr & 1, ($bfsr >> 1) & 3, ($bfsr >> 3) & 3
-       if $bfsr & 0x80
-       	  printf "busfault addr 0x%08x\n", $bfar
-       end
+	set $icsr  = *(uint32_t *)0xe000ed04
+	set $vect  = $icsr & 0x1ff
+	set $pend  = ($icsr & 0x1ff000) >> 12
+	set $shcsr = *(uint32_t *)0xe000ed24
+	set $cfsr  = *(uint32_t *)0xE000ED28
+	set $ufsr  = ($cfsr >> 16) & 0xffff
+	set $bfsr  = ($cfsr >> 8) & 0xff
+
+	while 1
+		if $vect == 0
+			printf "in thread mode\n"
+			loop_break
+		end
+
+		if $vect == 3
+			printf "HardFault"
+
+			set $hfsr = *(uint32_t *)0xe000ed2c
+			if $hfsr & (1<<1)
+				printf " due to vector table read fault\n"
+			end
+			if $hfsr & (1<<30)
+				printf " due to escalated or disabled configurable fault\n"
+			end
+			loop_break
+		end
+
+		loop_break
+	end
+
+	if $pend > 0
+		printf "vector %u pending\n", $pend
+	end
 end
+
+#       printf "vectactive %d  vectpending %d  isrpending %d\n", $icsr & 0xff, ($icsr >> 12) & 0xff, ($icsr >> 22) & 1
+#       set $hfsr = *(uint32_t *)0xe000ed2c
+#       printf "hardfault 0x%08x xforced %d  vector read error %d\n", $hfsr, ($hfsr >> 30) & 1, ($hfsr >> 1) & 1
+#       set $cfsr = *(uint32_t *)0xE000ED28
+#       set $ufsr = ($cfsr >> 16) & 0xffff
+#       set $bfsr = ($cfsr >> 8) & 0xff
+#       printf "usefault 0x%08x undef %d  align %d  divzero %d\n", $ufsr, $ufsr & 1, ($ufsr >> 8) & 1, ($ufsr >> 9) & 1
+#       set $bfar = *(uint32_t *)0xe000ed38
+#       printf "busfault 0x%08x prefetch %d  data %d  stack %d\n", $bfsr, $bfsr & 1, ($bfsr >> 1) & 3, ($bfsr >> 3) & 3
+#       if $bfsr & 0x80
+#       	  printf "busfault addr 0x%08x\n", $bfar
 
 # XXX this may only work with the fault handlers in scope... should work on that.
 define unwind

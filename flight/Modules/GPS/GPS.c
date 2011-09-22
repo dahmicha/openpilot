@@ -88,7 +88,7 @@ static float GravityAccel(float latitude, float longitude, float altitude);
 	#endif
 #else
 	#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
-		#define STACK_SIZE_BYTES 440
+		#define STACK_SIZE_BYTES 600
 	#else
 	#if ENABLE_GPS_BINARY_GTOP
 		#define STACK_SIZE_BYTES            440
@@ -232,7 +232,7 @@ static void gpsTask(void *parameters)
 		#ifdef ENABLE_GPS_BINARY_CUSTOM_GTOP
 			// GTOP BINARY GPS mode
 
-			while (PIOS_COM_ReceiveBufferUsed(gpsPort) > 0)
+		    while (PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, xDelay) > 0)
 			{
 				PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, 0);
 				int res = GTOP_BIN_CUSTOM_update_position(c, &numChecksumErrors, &numParsingErrors);
@@ -251,6 +251,7 @@ static void gpsTask(void *parameters)
 
 			while (PIOS_COM_ReceiveBuffer(gpsPort, &c, 1, xDelay) > 0)
 			{
+				uint8_t c;
 				if (GTOP_BIN_update_position(c, &numChecksumErrors, &numParsingErrors) >= 0)
 				{
 					numUpdates++;

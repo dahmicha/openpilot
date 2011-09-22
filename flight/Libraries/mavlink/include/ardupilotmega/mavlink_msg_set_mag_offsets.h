@@ -1,20 +1,32 @@
 // MESSAGE SET_MAG_OFFSETS PACKING
 
 #define MAVLINK_MSG_ID_SET_MAG_OFFSETS 151
-#define MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN 8
-#define MAVLINK_MSG_151_LEN 8
-#define MAVLINK_MSG_ID_SET_MAG_OFFSETS_KEY 0x41
-#define MAVLINK_MSG_151_KEY 0x41
 
-typedef struct __mavlink_set_mag_offsets_t 
+typedef struct __mavlink_set_mag_offsets_t
 {
-	int16_t mag_ofs_x;	///< magnetometer X offset
-	int16_t mag_ofs_y;	///< magnetometer Y offset
-	int16_t mag_ofs_z;	///< magnetometer Z offset
-	uint8_t target_system;	///< System ID
-	uint8_t target_component;	///< Component ID
-
+ int16_t mag_ofs_x; ///< magnetometer X offset
+ int16_t mag_ofs_y; ///< magnetometer Y offset
+ int16_t mag_ofs_z; ///< magnetometer Z offset
+ uint8_t target_system; ///< System ID
+ uint8_t target_component; ///< Component ID
 } mavlink_set_mag_offsets_t;
+
+#define MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN 8
+#define MAVLINK_MSG_ID_151_LEN 8
+
+
+
+#define MAVLINK_MESSAGE_INFO_SET_MAG_OFFSETS { \
+	"SET_MAG_OFFSETS", \
+	5, \
+	{  { "mag_ofs_x", NULL, MAVLINK_TYPE_INT16_T, 0, 0, offsetof(mavlink_set_mag_offsets_t, mag_ofs_x) }, \
+         { "mag_ofs_y", NULL, MAVLINK_TYPE_INT16_T, 0, 2, offsetof(mavlink_set_mag_offsets_t, mag_ofs_y) }, \
+         { "mag_ofs_z", NULL, MAVLINK_TYPE_INT16_T, 0, 4, offsetof(mavlink_set_mag_offsets_t, mag_ofs_z) }, \
+         { "target_system", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_set_mag_offsets_t, target_system) }, \
+         { "target_component", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_set_mag_offsets_t, target_component) }, \
+         } \
+}
+
 
 /**
  * @brief Pack a set_mag_offsets message
@@ -29,22 +41,35 @@ typedef struct __mavlink_set_mag_offsets_t
  * @param mag_ofs_z magnetometer Z offset
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_set_mag_offsets_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, uint8_t target_system, uint8_t target_component, int16_t mag_ofs_x, int16_t mag_ofs_y, int16_t mag_ofs_z)
+static inline uint16_t mavlink_msg_set_mag_offsets_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
+						       uint8_t target_system, uint8_t target_component, int16_t mag_ofs_x, int16_t mag_ofs_y, int16_t mag_ofs_z)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[8];
+	_mav_put_int16_t(buf, 0, mag_ofs_x);
+	_mav_put_int16_t(buf, 2, mag_ofs_y);
+	_mav_put_int16_t(buf, 4, mag_ofs_z);
+	_mav_put_uint8_t(buf, 6, target_system);
+	_mav_put_uint8_t(buf, 7, target_component);
+
+        memcpy(_MAV_PAYLOAD(msg), buf, 8);
+#else
+	mavlink_set_mag_offsets_t packet;
+	packet.mag_ofs_x = mag_ofs_x;
+	packet.mag_ofs_y = mag_ofs_y;
+	packet.mag_ofs_z = mag_ofs_z;
+	packet.target_system = target_system;
+	packet.target_component = target_component;
+
+        memcpy(_MAV_PAYLOAD(msg), &packet, 8);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
-
-	p->target_system = target_system;	// uint8_t:System ID
-	p->target_component = target_component;	// uint8_t:Component ID
-	p->mag_ofs_x = mag_ofs_x;	// int16_t:magnetometer X offset
-	p->mag_ofs_y = mag_ofs_y;	// int16_t:magnetometer Y offset
-	p->mag_ofs_z = mag_ofs_z;	// int16_t:magnetometer Z offset
-
-	return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN);
+	return mavlink_finalize_message(msg, system_id, component_id, 8, 219);
 }
 
 /**
- * @brief Pack a set_mag_offsets message
+ * @brief Pack a set_mag_offsets message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
@@ -56,18 +81,32 @@ static inline uint16_t mavlink_msg_set_mag_offsets_pack(uint8_t system_id, uint8
  * @param mag_ofs_z magnetometer Z offset
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_set_mag_offsets_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, uint8_t target_system, uint8_t target_component, int16_t mag_ofs_x, int16_t mag_ofs_y, int16_t mag_ofs_z)
+static inline uint16_t mavlink_msg_set_mag_offsets_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
+							   mavlink_message_t* msg,
+						           uint8_t target_system,uint8_t target_component,int16_t mag_ofs_x,int16_t mag_ofs_y,int16_t mag_ofs_z)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[8];
+	_mav_put_int16_t(buf, 0, mag_ofs_x);
+	_mav_put_int16_t(buf, 2, mag_ofs_y);
+	_mav_put_int16_t(buf, 4, mag_ofs_z);
+	_mav_put_uint8_t(buf, 6, target_system);
+	_mav_put_uint8_t(buf, 7, target_component);
+
+        memcpy(_MAV_PAYLOAD(msg), buf, 8);
+#else
+	mavlink_set_mag_offsets_t packet;
+	packet.mag_ofs_x = mag_ofs_x;
+	packet.mag_ofs_y = mag_ofs_y;
+	packet.mag_ofs_z = mag_ofs_z;
+	packet.target_system = target_system;
+	packet.target_component = target_component;
+
+        memcpy(_MAV_PAYLOAD(msg), &packet, 8);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
-
-	p->target_system = target_system;	// uint8_t:System ID
-	p->target_component = target_component;	// uint8_t:Component ID
-	p->mag_ofs_x = mag_ofs_x;	// int16_t:magnetometer X offset
-	p->mag_ofs_y = mag_ofs_y;	// int16_t:magnetometer Y offset
-	p->mag_ofs_z = mag_ofs_z;	// int16_t:magnetometer Z offset
-
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 8, 219);
 }
 
 /**
@@ -83,8 +122,6 @@ static inline uint16_t mavlink_msg_set_mag_offsets_encode(uint8_t system_id, uin
 	return mavlink_msg_set_mag_offsets_pack(system_id, component_id, msg, set_mag_offsets->target_system, set_mag_offsets->target_component, set_mag_offsets->mag_ofs_x, set_mag_offsets->mag_ofs_y, set_mag_offsets->mag_ofs_z);
 }
 
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 /**
  * @brief Send a set_mag_offsets message
  * @param chan MAVLink channel to send the message
@@ -95,38 +132,35 @@ static inline uint16_t mavlink_msg_set_mag_offsets_encode(uint8_t system_id, uin
  * @param mag_ofs_y magnetometer Y offset
  * @param mag_ofs_z magnetometer Z offset
  */
+#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+
 static inline void mavlink_msg_set_mag_offsets_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, int16_t mag_ofs_x, int16_t mag_ofs_y, int16_t mag_ofs_z)
 {
-	mavlink_header_t hdr;
-	mavlink_set_mag_offsets_t payload;
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[8];
+	_mav_put_int16_t(buf, 0, mag_ofs_x);
+	_mav_put_int16_t(buf, 2, mag_ofs_y);
+	_mav_put_int16_t(buf, 4, mag_ofs_z);
+	_mav_put_uint8_t(buf, 6, target_system);
+	_mav_put_uint8_t(buf, 7, target_component);
 
-	MAVLINK_BUFFER_CHECK_START( chan, MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN )
-	payload.target_system = target_system;	// uint8_t:System ID
-	payload.target_component = target_component;	// uint8_t:Component ID
-	payload.mag_ofs_x = mag_ofs_x;	// int16_t:magnetometer X offset
-	payload.mag_ofs_y = mag_ofs_y;	// int16_t:magnetometer Y offset
-	payload.mag_ofs_z = mag_ofs_z;	// int16_t:magnetometer Z offset
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_MAG_OFFSETS, buf, 8, 219);
+#else
+	mavlink_set_mag_offsets_t packet;
+	packet.mag_ofs_x = mag_ofs_x;
+	packet.mag_ofs_y = mag_ofs_y;
+	packet.mag_ofs_z = mag_ofs_z;
+	packet.target_system = target_system;
+	packet.target_component = target_component;
 
-	hdr.STX = MAVLINK_STX;
-	hdr.len = MAVLINK_MSG_ID_SET_MAG_OFFSETS_LEN;
-	hdr.msgid = MAVLINK_MSG_ID_SET_MAG_OFFSETS;
-	hdr.sysid = mavlink_system.sysid;
-	hdr.compid = mavlink_system.compid;
-	hdr.seq = mavlink_get_channel_status(chan)->current_tx_seq;
-	mavlink_get_channel_status(chan)->current_tx_seq = hdr.seq + 1;
-	mavlink_send_mem(chan, (uint8_t *)&hdr.STX, MAVLINK_NUM_HEADER_BYTES );
-	mavlink_send_mem(chan, (uint8_t *)&payload, sizeof(payload) );
-
-	crc_init(&hdr.ck);
-	crc_calculate_mem((uint8_t *)&hdr.len, &hdr.ck, MAVLINK_CORE_HEADER_LEN);
-	crc_calculate_mem((uint8_t *)&payload, &hdr.ck, hdr.len );
-	crc_accumulate( 0x41, &hdr.ck); /// include key in X25 checksum
-	mavlink_send_mem(chan, (uint8_t *)&hdr.ck, MAVLINK_NUM_CHECKSUM_BYTES);
-	MAVLINK_BUFFER_CHECK_END
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_MAG_OFFSETS, (const char *)&packet, 8, 219);
+#endif
 }
 
 #endif
+
 // MESSAGE SET_MAG_OFFSETS UNPACKING
+
 
 /**
  * @brief Get field target_system from set_mag_offsets message
@@ -135,8 +169,7 @@ static inline void mavlink_msg_set_mag_offsets_send(mavlink_channel_t chan, uint
  */
 static inline uint8_t mavlink_msg_set_mag_offsets_get_target_system(const mavlink_message_t* msg)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
-	return (uint8_t)(p->target_system);
+	return _MAV_RETURN_uint8_t(msg,  6);
 }
 
 /**
@@ -146,8 +179,7 @@ static inline uint8_t mavlink_msg_set_mag_offsets_get_target_system(const mavlin
  */
 static inline uint8_t mavlink_msg_set_mag_offsets_get_target_component(const mavlink_message_t* msg)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
-	return (uint8_t)(p->target_component);
+	return _MAV_RETURN_uint8_t(msg,  7);
 }
 
 /**
@@ -157,8 +189,7 @@ static inline uint8_t mavlink_msg_set_mag_offsets_get_target_component(const mav
  */
 static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_x(const mavlink_message_t* msg)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
-	return (int16_t)(p->mag_ofs_x);
+	return _MAV_RETURN_int16_t(msg,  0);
 }
 
 /**
@@ -168,8 +199,7 @@ static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_x(const mavlink_me
  */
 static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_y(const mavlink_message_t* msg)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
-	return (int16_t)(p->mag_ofs_y);
+	return _MAV_RETURN_int16_t(msg,  2);
 }
 
 /**
@@ -179,8 +209,7 @@ static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_y(const mavlink_me
  */
 static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_z(const mavlink_message_t* msg)
 {
-	mavlink_set_mag_offsets_t *p = (mavlink_set_mag_offsets_t *)&msg->payload[0];
-	return (int16_t)(p->mag_ofs_z);
+	return _MAV_RETURN_int16_t(msg,  4);
 }
 
 /**
@@ -191,5 +220,13 @@ static inline int16_t mavlink_msg_set_mag_offsets_get_mag_ofs_z(const mavlink_me
  */
 static inline void mavlink_msg_set_mag_offsets_decode(const mavlink_message_t* msg, mavlink_set_mag_offsets_t* set_mag_offsets)
 {
-	memcpy( set_mag_offsets, msg->payload, sizeof(mavlink_set_mag_offsets_t));
+#if MAVLINK_NEED_BYTE_SWAP
+	set_mag_offsets->mag_ofs_x = mavlink_msg_set_mag_offsets_get_mag_ofs_x(msg);
+	set_mag_offsets->mag_ofs_y = mavlink_msg_set_mag_offsets_get_mag_ofs_y(msg);
+	set_mag_offsets->mag_ofs_z = mavlink_msg_set_mag_offsets_get_mag_ofs_z(msg);
+	set_mag_offsets->target_system = mavlink_msg_set_mag_offsets_get_target_system(msg);
+	set_mag_offsets->target_component = mavlink_msg_set_mag_offsets_get_target_component(msg);
+#else
+	memcpy(set_mag_offsets, _MAV_PAYLOAD(msg), 8);
+#endif
 }

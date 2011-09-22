@@ -249,8 +249,6 @@ void *pvReturn = NULL;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
-void xPortIncreaseHeapSize( size_t bytes );
-
 
 void vPortFree( void *pv )
 {

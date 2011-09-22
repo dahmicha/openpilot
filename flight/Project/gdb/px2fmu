@@ -1,14 +1,15 @@
 define connect
-       do_connect ./build/px2fmu/px2fmu.elf
+       do_connect ./build/fw_px2fmu/fw_px2fmu.elf
 end
 
 define reflash
 	mon reset halt
-	mon flash write_image erase build/px2fmu/px2fmu.elf
+	mon flash write_image erase build/fw_px2fmu/fw_px2fmu.elf
 	mon reset
 end
 
 directory ./flight/project/gdb
 source CortexM3
 source FreeRTOS
-source zalloc
+#source zalloc
+source msheap

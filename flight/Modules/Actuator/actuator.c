@@ -566,6 +566,7 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 	switch(settings.ChannelType[mixer_channel]) {
 		case ACTUATORSETTINGS_CHANNELTYPE_PWMALARMBUZZER: {
 			// This is for buzzers that take a PWM input
+#if defined(PIOS_INCLUDE_SERVO)
 
 			static uint32_t currBuzzTune = 0;
 			static uint32_t currBuzzTuneState;
@@ -607,7 +608,6 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 				}
 			}
 			// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#if defined(PIOS_INCLUDE_SERVO)
 			PIOS_Servo_Set(	settings.ChannelAddr[mixer_channel],
 							buzzOn?settings.ChannelMax[mixer_channel]:settings.ChannelMin[mixer_channel]);
 #endif

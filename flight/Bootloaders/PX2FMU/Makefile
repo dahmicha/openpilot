@@ -304,7 +304,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 
 CFLAGS += -mapcs-frame 
 CFLAGS += -fomit-frame-pointer
-CFLAGS += -fpromote-loop-indices
+#CFLAGS += -fpromote-loop-indices
 
 CFLAGS += -Wall 
 CFLAGS += -Werror

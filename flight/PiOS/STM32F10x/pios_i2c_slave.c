@@ -141,7 +141,7 @@ struct fsm_transition fsm[NUM_STATES] = {
 				},
 		},
 		[SEND_COMPLETE] = {
-				.handler = go_send_complete,
+				.handler = go_send_done,
 				.next_state = {
 						[AUTO] = WAIT_FOR_MASTER,
 				},
@@ -150,20 +150,23 @@ struct fsm_transition fsm[NUM_STATES] = {
 
 static struct fsm_context context;	// XXX need an array for > 1 device
 
-static struct fsm_context *context_for_id(uint32_t i2c_id);
+static struct fsm_context *context_for_id(uint32_t i2c_id)
+{
+	// XXX
+	return	&context;
+}
 
 int
-PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg, pios_i2c_slave_callback *callback)
+PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
 
 	ctx->i2c_id = i2c_id;
 	ctx->regs = cfg->regs;
-	ctx_callback = callback;
 
 	/* Enable the associated peripheral clock */
 	/* XXX this is bogus, clocks should always be on */
-	switch ((uint32_t) i2c_adapter->cfg->regs) {
+	switch ((uint32_t)cfg->regs) {
 	case (uint32_t) I2C1:
 		/* Enable I2C peripheral clock (APB1 == slow speed) */
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
@@ -185,6 +188,18 @@ PIOS_I2C_Slave_Init(uint32_t i2c_id, const struct pios_i2c_adapter_cfg *cfg, pio
 	I2C_Init(ctx->regs, &cfg->init);
 
 	return 0;
+}
+
+void
+PIOS_I2C_Slave_Open(uint32_t i2c_id, pios_i2c_slave_callback callback)
+{
+	struct fsm_context	*ctx = context_for_id(i2c_id);
+
+	// hook up the callback
+	ctx->callback = callback;
+
+	// and open for business
+	PIOS_I2C_SLAVE_Enable(i2c_id, true);
 }
 
 void
@@ -212,7 +227,7 @@ PIOS_I2C_SLAVE_Enable(uint32_t i2c_id, bool enabled)
 
 
 void
-PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, pios_i2c_slave_txn txn_list[], uint32_t num_txns)
+PIOS_I2C_SLAVE_Transfer(uint32_t i2c_id, struct pios_i2c_slave_txn txn_list[], uint32_t num_txns)
 {
 	struct fsm_context	*ctx = context_for_id(i2c_id);
 
@@ -303,7 +318,6 @@ fsm_event(struct fsm_context *ctx, enum fsm_event event)
 static void
 go_bad(struct fsm_context *ctx)
 {
-	LOG('B', 0);
 	fsm_event(ctx, AUTO);
 }
 
@@ -451,7 +465,7 @@ go_send_data(struct fsm_context *ctx)
  * @param ctx
  */
 static void
-go_send_complete(struct fsm_context *ctx)
+go_send_done(struct fsm_context *ctx)
 {
 	// Tell the client that transmission has stopped
 	ctx->callback(ctx->i2c_id, PIOS_I2C_SLAVE_TRANSMIT_DONE, 0);

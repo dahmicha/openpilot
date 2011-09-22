@@ -1,20 +1,32 @@
 // MESSAGE PARAM_VALUE PACKING
 
 #define MAVLINK_MSG_ID_PARAM_VALUE 22
-#define MAVLINK_MSG_ID_PARAM_VALUE_LEN 24
-#define MAVLINK_MSG_22_LEN 24
-#define MAVLINK_MSG_ID_PARAM_VALUE_KEY 0xA3
-#define MAVLINK_MSG_22_KEY 0xA3
 
-typedef struct __mavlink_param_value_t 
+typedef struct __mavlink_param_value_t
 {
-	float param_value;	///< Onboard parameter value
-	uint16_t param_count;	///< Total number of onboard parameters
-	uint16_t param_index;	///< Index of this onboard parameter
-	char param_id[16];	///< Onboard parameter id
-
+ float param_value; ///< Onboard parameter value
+ uint16_t param_count; ///< Total number of onboard parameters
+ uint16_t param_index; ///< Index of this onboard parameter
+ char param_id[16]; ///< Onboard parameter id
+ uint8_t param_type; ///< Onboard parameter type: 0: float, 1: uint8_t, 2: int8_t, 3: uint16_t, 4: int16_t, 5: uint32_t, 6: int32_t
 } mavlink_param_value_t;
+
+#define MAVLINK_MSG_ID_PARAM_VALUE_LEN 25
+#define MAVLINK_MSG_ID_22_LEN 25
+
 #define MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN 16
+
+#define MAVLINK_MESSAGE_INFO_PARAM_VALUE { \
+	"PARAM_VALUE", \
+	5, \
+	{  { "param_value", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_param_value_t, param_value) }, \
+         { "param_count", NULL, MAVLINK_TYPE_UINT16_T, 0, 4, offsetof(mavlink_param_value_t, param_count) }, \
+         { "param_index", NULL, MAVLINK_TYPE_UINT16_T, 0, 6, offsetof(mavlink_param_value_t, param_index) }, \
+         { "param_id", NULL, MAVLINK_TYPE_CHAR, 16, 8, offsetof(mavlink_param_value_t, param_id) }, \
+         { "param_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 24, offsetof(mavlink_param_value_t, param_type) }, \
+         } \
+}
+
 
 /**
  * @brief Pack a param_value message
@@ -24,46 +36,73 @@ typedef struct __mavlink_param_value_t
  *
  * @param param_id Onboard parameter id
  * @param param_value Onboard parameter value
+ * @param param_type Onboard parameter type: 0: float, 1: uint8_t, 2: int8_t, 3: uint16_t, 4: int16_t, 5: uint32_t, 6: int32_t
  * @param param_count Total number of onboard parameters
  * @param param_index Index of this onboard parameter
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_param_value_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const char* param_id, float param_value, uint16_t param_count, uint16_t param_index)
+static inline uint16_t mavlink_msg_param_value_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
+						       const char *param_id, float param_value, uint8_t param_type, uint16_t param_count, uint16_t param_index)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[25];
+	_mav_put_float(buf, 0, param_value);
+	_mav_put_uint16_t(buf, 4, param_count);
+	_mav_put_uint16_t(buf, 6, param_index);
+	_mav_put_uint8_t(buf, 24, param_type);
+	_mav_put_char_array(buf, 8, param_id, 16);
+        memcpy(_MAV_PAYLOAD(msg), buf, 25);
+#else
+	mavlink_param_value_t packet;
+	packet.param_value = param_value;
+	packet.param_count = param_count;
+	packet.param_index = param_index;
+	packet.param_type = param_type;
+	memcpy(packet.param_id, param_id, sizeof(char)*16);
+        memcpy(_MAV_PAYLOAD(msg), &packet, 25);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_PARAM_VALUE;
-
-	memcpy(p->param_id, param_id, sizeof(p->param_id));	// char[16]:Onboard parameter id
-	p->param_value = param_value;	// float:Onboard parameter value
-	p->param_count = param_count;	// uint16_t:Total number of onboard parameters
-	p->param_index = param_index;	// uint16_t:Index of this onboard parameter
-
-	return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_PARAM_VALUE_LEN);
+	return mavlink_finalize_message(msg, system_id, component_id, 25, 220);
 }
 
 /**
- * @brief Pack a param_value message
+ * @brief Pack a param_value message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
  * @param param_id Onboard parameter id
  * @param param_value Onboard parameter value
+ * @param param_type Onboard parameter type: 0: float, 1: uint8_t, 2: int8_t, 3: uint16_t, 4: int16_t, 5: uint32_t, 6: int32_t
  * @param param_count Total number of onboard parameters
  * @param param_index Index of this onboard parameter
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_param_value_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const char* param_id, float param_value, uint16_t param_count, uint16_t param_index)
+static inline uint16_t mavlink_msg_param_value_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
+							   mavlink_message_t* msg,
+						           const char *param_id,float param_value,uint8_t param_type,uint16_t param_count,uint16_t param_index)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[25];
+	_mav_put_float(buf, 0, param_value);
+	_mav_put_uint16_t(buf, 4, param_count);
+	_mav_put_uint16_t(buf, 6, param_index);
+	_mav_put_uint8_t(buf, 24, param_type);
+	_mav_put_char_array(buf, 8, param_id, 16);
+        memcpy(_MAV_PAYLOAD(msg), buf, 25);
+#else
+	mavlink_param_value_t packet;
+	packet.param_value = param_value;
+	packet.param_count = param_count;
+	packet.param_index = param_index;
+	packet.param_type = param_type;
+	memcpy(packet.param_id, param_id, sizeof(char)*16);
+        memcpy(_MAV_PAYLOAD(msg), &packet, 25);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_PARAM_VALUE;
-
-	memcpy(p->param_id, param_id, sizeof(p->param_id));	// char[16]:Onboard parameter id
-	p->param_value = param_value;	// float:Onboard parameter value
-	p->param_count = param_count;	// uint16_t:Total number of onboard parameters
-	p->param_index = param_index;	// uint16_t:Index of this onboard parameter
-
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_PARAM_VALUE_LEN);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 25, 220);
 }
 
 /**
@@ -76,63 +115,55 @@ static inline uint16_t mavlink_msg_param_value_pack_chan(uint8_t system_id, uint
  */
 static inline uint16_t mavlink_msg_param_value_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_param_value_t* param_value)
 {
-	return mavlink_msg_param_value_pack(system_id, component_id, msg, param_value->param_id, param_value->param_value, param_value->param_count, param_value->param_index);
+	return mavlink_msg_param_value_pack(system_id, component_id, msg, param_value->param_id, param_value->param_value, param_value->param_type, param_value->param_count, param_value->param_index);
 }
 
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 /**
  * @brief Send a param_value message
  * @param chan MAVLink channel to send the message
  *
  * @param param_id Onboard parameter id
  * @param param_value Onboard parameter value
+ * @param param_type Onboard parameter type: 0: float, 1: uint8_t, 2: int8_t, 3: uint16_t, 4: int16_t, 5: uint32_t, 6: int32_t
  * @param param_count Total number of onboard parameters
  * @param param_index Index of this onboard parameter
  */
-static inline void mavlink_msg_param_value_send(mavlink_channel_t chan, const char* param_id, float param_value, uint16_t param_count, uint16_t param_index)
+#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+
+static inline void mavlink_msg_param_value_send(mavlink_channel_t chan, const char *param_id, float param_value, uint8_t param_type, uint16_t param_count, uint16_t param_index)
 {
-	mavlink_header_t hdr;
-	mavlink_param_value_t payload;
-
-	MAVLINK_BUFFER_CHECK_START( chan, MAVLINK_MSG_ID_PARAM_VALUE_LEN )
-	memcpy(payload.param_id, param_id, sizeof(payload.param_id));	// char[16]:Onboard parameter id
-	payload.param_value = param_value;	// float:Onboard parameter value
-	payload.param_count = param_count;	// uint16_t:Total number of onboard parameters
-	payload.param_index = param_index;	// uint16_t:Index of this onboard parameter
-
-	hdr.STX = MAVLINK_STX;
-	hdr.len = MAVLINK_MSG_ID_PARAM_VALUE_LEN;
-	hdr.msgid = MAVLINK_MSG_ID_PARAM_VALUE;
-	hdr.sysid = mavlink_system.sysid;
-	hdr.compid = mavlink_system.compid;
-	hdr.seq = mavlink_get_channel_status(chan)->current_tx_seq;
-	mavlink_get_channel_status(chan)->current_tx_seq = hdr.seq + 1;
-	mavlink_send_mem(chan, (uint8_t *)&hdr.STX, MAVLINK_NUM_HEADER_BYTES );
-	mavlink_send_mem(chan, (uint8_t *)&payload, sizeof(payload) );
-
-	crc_init(&hdr.ck);
-	crc_calculate_mem((uint8_t *)&hdr.len, &hdr.ck, MAVLINK_CORE_HEADER_LEN);
-	crc_calculate_mem((uint8_t *)&payload, &hdr.ck, hdr.len );
-	crc_accumulate( 0xA3, &hdr.ck); /// include key in X25 checksum
-	mavlink_send_mem(chan, (uint8_t *)&hdr.ck, MAVLINK_NUM_CHECKSUM_BYTES);
-	MAVLINK_BUFFER_CHECK_END
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[25];
+	_mav_put_float(buf, 0, param_value);
+	_mav_put_uint16_t(buf, 4, param_count);
+	_mav_put_uint16_t(buf, 6, param_index);
+	_mav_put_uint8_t(buf, 24, param_type);
+	_mav_put_char_array(buf, 8, param_id, 16);
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PARAM_VALUE, buf, 25, 220);
+#else
+	mavlink_param_value_t packet;
+	packet.param_value = param_value;
+	packet.param_count = param_count;
+	packet.param_index = param_index;
+	packet.param_type = param_type;
+	memcpy(packet.param_id, param_id, sizeof(char)*16);
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_PARAM_VALUE, (const char *)&packet, 25, 220);
+#endif
 }
 
 #endif
+
 // MESSAGE PARAM_VALUE UNPACKING
+
 
 /**
  * @brief Get field param_id from param_value message
  *
  * @return Onboard parameter id
  */
-static inline uint16_t mavlink_msg_param_value_get_param_id(const mavlink_message_t* msg, char* param_id)
+static inline uint16_t mavlink_msg_param_value_get_param_id(const mavlink_message_t* msg, char *param_id)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
-
-	memcpy(param_id, p->param_id, sizeof(p->param_id));
-	return sizeof(p->param_id);
+	return _MAV_RETURN_char_array(msg, param_id, 16,  8);
 }
 
 /**
@@ -142,8 +173,17 @@ static inline uint16_t mavlink_msg_param_value_get_param_id(const mavlink_messag
  */
 static inline float mavlink_msg_param_value_get_param_value(const mavlink_message_t* msg)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
-	return (float)(p->param_value);
+	return _MAV_RETURN_float(msg,  0);
+}
+
+/**
+ * @brief Get field param_type from param_value message
+ *
+ * @return Onboard parameter type: 0: float, 1: uint8_t, 2: int8_t, 3: uint16_t, 4: int16_t, 5: uint32_t, 6: int32_t
+ */
+static inline uint8_t mavlink_msg_param_value_get_param_type(const mavlink_message_t* msg)
+{
+	return _MAV_RETURN_uint8_t(msg,  24);
 }
 
 /**
@@ -153,8 +193,7 @@ static inline float mavlink_msg_param_value_get_param_value(const mavlink_messag
  */
 static inline uint16_t mavlink_msg_param_value_get_param_count(const mavlink_message_t* msg)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
-	return (uint16_t)(p->param_count);
+	return _MAV_RETURN_uint16_t(msg,  4);
 }
 
 /**
@@ -164,8 +203,7 @@ static inline uint16_t mavlink_msg_param_value_get_param_count(const mavlink_mes
  */
 static inline uint16_t mavlink_msg_param_value_get_param_index(const mavlink_message_t* msg)
 {
-	mavlink_param_value_t *p = (mavlink_param_value_t *)&msg->payload[0];
-	return (uint16_t)(p->param_index);
+	return _MAV_RETURN_uint16_t(msg,  6);
 }
 
 /**
@@ -176,5 +214,13 @@ static inline uint16_t mavlink_msg_param_value_get_param_index(const mavlink_mes
  */
 static inline void mavlink_msg_param_value_decode(const mavlink_message_t* msg, mavlink_param_value_t* param_value)
 {
-	memcpy( param_value, msg->payload, sizeof(mavlink_param_value_t));
+#if MAVLINK_NEED_BYTE_SWAP
+	param_value->param_value = mavlink_msg_param_value_get_param_value(msg);
+	param_value->param_count = mavlink_msg_param_value_get_param_count(msg);
+	param_value->param_index = mavlink_msg_param_value_get_param_index(msg);
+	mavlink_msg_param_value_get_param_id(msg, param_value->param_id);
+	param_value->param_type = mavlink_msg_param_value_get_param_type(msg);
+#else
+	memcpy(param_value, _MAV_PAYLOAD(msg), 25);
+#endif
 }

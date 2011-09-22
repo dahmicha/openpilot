@@ -74,7 +74,6 @@ PIOSSTM32F2XX = $(PIOS)/STM32F2xx
 PIOSSTM32F2XXINC = $(PIOSSTM32F2XX)/inc
 PIOSCOMMON = $(PIOS)/Common
 PIOSCOMMONLIB = $(PIOS)/Common/Libraries
-ZALLOCLIB = $(PIOSCOMMONLIB)/zalloc
 PIOSBOARDS = $(PIOS)/Boards
 APPLIBDIR = $(PIOSSTM32F2XX)/Libraries
 STMLIBDIR = $(APPLIBDIR)
@@ -151,7 +150,6 @@ endif
 
 ## MAVLINK MISSION LIB
 SRC += $(MAVLINKMISSIONLIB)/waypoints.c
-SRC += $(MAVLINKMISSIONLIB)/mavlink_parameters.c
 
 ## PIOS Hardware (STM32F2xx)
 SRC += $(PIOSSTM32F2XX)/startup.c
@@ -226,9 +224,8 @@ SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
 #SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
 
 ## Better malloc/free
-SRC += $(ZALLOCLIB)/malloc.c
-SRC += $(ZALLOCLIB)/zalloc.c
-SRC += $(ZALLOCLIB)/zalloc_FreeRTOS.c
+SRC += $(PIOSCOMMONLIB)/msheap/msheap.c
+SRC += $(PIOSCOMMONLIB)/msheap/pios_msheap.c
 
 ## Dosfs file system
 SRC += $(DOSFSDIR)/dosfs.c
@@ -288,7 +285,6 @@ EXTRAINCDIRS  += $(RTOSINCDIR)
 EXTRAINCDIRS  += $(APPLIBDIR)
 EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 EXTRAINCDIRS  += $(PYMITEINC)
-EXTRAINCDIRS  += $(ZALLOCLIB)
 
 EXTRAINCDIRS += ${foreach MOD, ${MODULES} ${PYMODULES}, $(OPMODULEDIR)/${MOD}/inc} ${OPMODULEDIR}/System/inc
 
@@ -333,7 +329,8 @@ DEBUGF = dwarf-2
 # Place project-specific -D (define) and/or
 # -U options for C here.
 CDEFS = -DSTM32F2XX
-CDEFS += -DMAVLINK_NO_DATA
+#CDEFS += -DMAVLINK_SEPARATE_HELPERS
+#CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
 CDEFS += -D__ARM_ARCH_7M__
 CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
 CDEFS += -DUSE_STDPERIPH_DRIVER
@@ -399,10 +396,8 @@ MATH_LIB = -lm
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
-LDFLAGS += -lc
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
-LDFLAGS += -lc -lgcc
 
 # Hardcoded linker script names for now
 LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_OP_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_sections.ld

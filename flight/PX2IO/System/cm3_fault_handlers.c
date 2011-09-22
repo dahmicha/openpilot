@@ -60,22 +60,23 @@ HardFault_Handler2(struct cm3_frame *frame)
 void
 BusFault_Handler2(struct cm3_frame *frame)
 {
-	dbg_write_str("\nBUS FAULT @ 0x");
+	dbg_write_str("\nBUS FAULT");
 	dbg_write_hex32(frame->pc);
-	dbg_write_str("  CFSR 0x");
+	dbg_write_char('\n');
 	dbg_write_hex32(SCB_REG(CFSR));
-	dbg_write_str("  BFAR 0x");
+	dbg_write_char('\n');
 	dbg_write_hex32(SCB_REG(BFAR));
+	dbg_write_char('\n');
 	for (;;);
 }
 
 void
 UsageFault_Handler2(struct cm3_frame *frame)
 {
-	dbg_write_str("\nUSAGE FAULT @ 0x");
+	dbg_write_str("\nUSAGE FAULT");
 	dbg_write_hex32(frame->pc);
-	dbg_write_str("  CFSR 0x");
+	dbg_write_char('\n');
 	dbg_write_hex32(SCB_REG(CFSR));
+	dbg_write_char('\n');
 	for (;;);
 }
-

@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.0 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.0.1 - Copyright (C) 2011 Real Time Engineers Ltd.
 	
 
 	FreeRTOS supports many tools and architectures. V7.0.0 is sponsored by:
@@ -495,11 +495,11 @@ tskTCB * pxNewTCB;
 		the	top of stack variable is updated. */
 		#if( portUSING_MPU_WRAPPERS == 1 )
 		{
-			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters, xRunPrivileged );
+			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxNewTCB->pxStack, pxTaskCode, pvParameters, xRunPrivileged );
 		}
 		#else
 		{
-			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
+			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxNewTCB->pxStack, pxTaskCode, pvParameters );
 		}
 		#endif
 
@@ -944,9 +944,9 @@ tskTCB * pxNewTCB;
 				/* The scheduler is not running, but the task that was pointed
 				to by pxCurrentTCB has just been suspended and pxCurrentTCB
 				must be adjusted to point to a different task. */
-				if( uxCurrentNumberOfTasks == ( unsigned portBASE_TYPE ) 1U )
+				if( listCURRENT_LIST_LENGTH( &xSuspendedTaskList ) == uxCurrentNumberOfTasks ) 
 				{
-					/* No other tasks are defined, so set pxCurrentTCB back to
+					/* No other tasks are ready, so set pxCurrentTCB back to
 					NULL so when the next task is created pxCurrentTCB will
 					be set to point to it no matter what its relative priority
 					is. */
@@ -2310,22 +2310,21 @@ tskTCB *pxNewTCB;
 	}
 
 #endif
-	/*-----------------------------------------------------------*/
+/*-----------------------------------------------------------*/
 
 #if ( INCLUDE_uxTaskGetRunTime == 1 )
-	unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask )
-	{
-		unsigned long runTime;
-
-		tskTCB *pxTCB;
-		pxTCB = prvGetTCBFromHandle( xTask );
-		runTime = pxTCB->ulRunTimeCounter;
-		pxTCB->ulRunTimeCounter = 0;
-		return runTime;
-	}
+unsigned portBASE_TYPE uxTaskGetRunTime( xTaskHandle xTask )
+{
+	unsigned long runTime;
+	
+	tskTCB *pxTCB;
+	pxTCB = prvGetTCBFromHandle( xTask );
+	runTime = pxTCB->ulRunTimeCounter;
+	pxTCB->ulRunTimeCounter = 0;
+	return runTime;
+}
 
 #endif
-
 /*-----------------------------------------------------------*/
 
 #if ( ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_uxTaskGetStackHighWaterMark == 1 ) )

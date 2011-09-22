@@ -33,7 +33,7 @@ _malloc_check(void *ptr, int clear)
 #ifdef USEENDGUARD
 	unsigned char *eg = ((unsigned char *)res + res->ga_Bytes - 1);
 	if (*eg != EGAMAGIC) {
-		MallocPool.mp_Panic("free: guard2 fail @ %p", ptr);
+		MallocPool.mp_Panic("malloc: guard2 fail @ %p", ptr);
 	}
 	if (clear)
 		*eg = NOMAGIC;
@@ -117,3 +117,40 @@ reallocf(void *ptr, size_t size)
 	return(res);
 }
 
+#include "zalloc_private.h"
+
+void
+malloc_heap_check(void)
+{
+	uint8_t	*alloc;
+	MemNode	*hole;
+	Guard	*g;
+	iaddr_t	round;
+
+	round = sizeof(struct MemNode) - 1;
+
+	if ((MallocPool.mp_Base + MallocPool.mp_Size) != MallocPool.mp_End)
+		MallocPool.mp_Panic("malloc: pool base/end/size corrupt");
+	if (((void *)MallocPool.mp_First < MallocPool.mp_Base) || ((void *)MallocPool.mp_First > MallocPool.mp_End))
+		MallocPool.mp_Panic("malloc: pool freelist corrupt");
+
+	alloc = MallocPool.mp_Base;
+	hole = MallocPool.mp_First;
+
+	while ((void *)alloc < MallocPool.mp_End) {
+		if (alloc == (uint8_t *)hole) {
+			alloc += hole->mr_Bytes;
+			if (((void *)alloc < MallocPool.mp_Base) || ((void *)alloc > MallocPool.mp_End) ||
+				((void *)hole->mr_Next > MallocPool.mp_End))
+				MallocPool.mp_Panic("malloc: pool free node %p corrupt", hole);
+			hole = hole->mr_Next;
+		} else {
+			g = (Guard *)alloc;
+			_malloc_check(g + 1, 0);
+
+			alloc += (g->ga_Bytes + round) & ~round;
+			if (((void *)alloc < MallocPool.mp_Base) || ((void *)alloc > MallocPool.mp_End))
+				MallocPool.mp_Panic("malloc: allocation %p corrupt", g);
+		}
+	}
+}

@@ -115,8 +115,18 @@ int32_t PX2AttitudeStart()
  */
 int32_t PX2AttitudeInitialize(void)
 {
-	// Connect settings update callback
-	//AttitudeSettingsConnectCallback(&settingsUpdatedCb);
+	AttitudeActualInitialize();
+	AttitudeRawInitialize();
+//	AttitudeSettingsInitialize();
+
+	// Initialize quaternion
+	AttitudeActualData attitude;
+	AttitudeActualGet(&attitude);
+	attitude.q1 = 1;
+	attitude.q2 = 0;
+	attitude.q3 = 0;
+	attitude.q4 = 0;
+	AttitudeActualSet(&attitude);
 
 	return 0;
 }
@@ -227,7 +237,7 @@ static void sensorTask(void *parameters)
 		}
 
 		// accumulate mag reading if available
-		if (PIOS_HMC5883_NewDataAvailable() && (mc <= MAX_SAMPLES_PER_UPDATE)) {
+		if (/*PIOS_HMC5883_NewDataAvailable() && */(mc <= MAX_SAMPLES_PER_UPDATE)) {
 			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
 			sb->mag_count = mc + 1;
 		}
@@ -356,10 +366,12 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	accel.y = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
 	accel.z = attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
 
+#if 0
 	float_vect3 mag;
 	mag.x = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] - MAG_OFFSET_X) / MAG_SCALE_X;
 	mag.y = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] - MAG_OFFSET_Y) / MAG_SCALE_Y;
 	mag.z = (attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] - MAG_OFFSET_Z) / MAG_SCALE_Z;
+#endif
 
 	AttitudeActualData attitudeActual;
 
@@ -378,9 +390,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitudeActual.Pitch = angles.y * 57.2957795f;
 	attitudeActual.Yaw   = angles.z * 57.2957795f;
 
-	attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
-	attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
-	attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
+	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
+	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
+	//attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
 

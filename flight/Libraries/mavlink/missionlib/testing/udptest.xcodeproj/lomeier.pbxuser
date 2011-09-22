@@ -1,0 +1,170 @@
+// !$*UTF8*$!
+{
+	08FB7793FE84155DC02AAC07 /* Project object */ = {
+		activeBuildConfigurationName = Debug;
+		activeExecutable = 34344F0E140239D50080F48E /* udptest */;
+		activeTarget = 8DD76FA90486AB0100D96B5E /* udptest */;
+		codeSenseManager = 34344F16140239F50080F48E /* Code sense */;
+		executables = (
+			34344F0E140239D50080F48E /* udptest */,
+		);
+		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					762,
+					20,
+					48,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 336999309;
+			PBXWorkspaceStateSaveDate = 336999309;
+		};
+		perUserProjectItems = {
+			34A932391417604500D0A06E /* PBXTextBookmark */ = 34A932391417604500D0A06E /* PBXTextBookmark */;
+			34A9323B1417604500D0A06E /* PBXTextBookmark */ = 34A9323B1417604500D0A06E /* PBXTextBookmark */;
+			34A9323D1417604500D0A06E /* PBXTextBookmark */ = 34A9323D1417604500D0A06E /* PBXTextBookmark */;
+			34A9323F1417604500D0A06E /* PBXTextBookmark */ = 34A9323F1417604500D0A06E /* PBXTextBookmark */;
+		};
+		sourceControlManager = 34344F15140239F50080F48E /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	08FB7796FE84155DC02AAC07 /* main.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1699, 4823}}";
+			sepNavSelRange = "{10106, 0}";
+			sepNavVisRange = "{7253, 3229}";
+			sepNavWindowFrame = "{{15, 98}, {1371, 1315}}";
+		};
+	};
+	34344F0E140239D50080F48E /* udptest */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		dataTipCustomDataFormattersEnabled = 1;
+		dataTipShowTypeColumn = 1;
+		dataTipSortType = 0;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = udptest;
+		savedGlobals = {
+		};
+		showTypeColumn = 0;
+		sourceDirectories = (
+		);
+	};
+	34344F15140239F50080F48E /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+			repositoryNamesForRoots = {
+				"" = "";
+			};
+		};
+	};
+	34344F16140239F50080F48E /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	34A932391417604500D0A06E /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 34A9323A1417604500D0A06E /* libraries.sh */;
+		name = "libraries.sh: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 2084;
+		vrLoc = 0;
+	};
+	34A9323A1417604500D0A06E /* libraries.sh */ = {
+		isa = PBXFileReference;
+		name = libraries.sh;
+		path = /Users/lomeier/Downloads/libraries.sh;
+		sourceTree = "<absolute>";
+	};
+	34A9323B1417604500D0A06E /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 34A9323C1417604500D0A06E /* libraries */;
+		name = "libraries: 49";
+		rLen = 0;
+		rLoc = 1864;
+		rType = 0;
+		vrLen = 2000;
+		vrLoc = 0;
+	};
+	34A9323C1417604500D0A06E /* libraries */ = {
+		isa = PBXFileReference;
+		name = libraries;
+		path = "/Users/lomeier/src/openpilot-stm32f2xx/package/osx/libraries";
+		sourceTree = "<absolute>";
+	};
+	34A9323D1417604500D0A06E /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 34A9323E1417604500D0A06E /* package */;
+		name = "package: 29";
+		rLen = 0;
+		rLoc = 687;
+		rType = 0;
+		vrLen = 1111;
+		vrLoc = 0;
+	};
+	34A9323E1417604500D0A06E /* package */ = {
+		isa = PBXFileReference;
+		lastKnownFileType = text.script.sh;
+		name = package;
+		path = "/Users/lomeier/src/openpilot-stm32f2xx/package/osx/package";
+		sourceTree = "<absolute>";
+	};
+	34A9323F1417604500D0A06E /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 34A932401417604500D0A06E /* package */;
+		name = "package: 22";
+		rLen = 0;
+		rLoc = 705;
+		rType = 0;
+		vrLen = 706;
+		vrLoc = 0;
+	};
+	34A932401417604500D0A06E /* package */ = {
+		isa = PBXFileReference;
+		name = package;
+		path = "/Users/lomeier/src/openpilot-stm32f2xx/package/osx/package";
+		sourceTree = "<absolute>";
+	};
+	8DD76FA90486AB0100D96B5E /* udptest */ = {
+		activeExec = 0;
+		executables = (
+			34344F0E140239D50080F48E /* udptest */,
+		);
+	};
+}

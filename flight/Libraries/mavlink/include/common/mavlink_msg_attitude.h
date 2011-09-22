@@ -1,22 +1,36 @@
 // MESSAGE ATTITUDE PACKING
 
 #define MAVLINK_MSG_ID_ATTITUDE 30
-#define MAVLINK_MSG_ID_ATTITUDE_LEN 32
-#define MAVLINK_MSG_30_LEN 32
-#define MAVLINK_MSG_ID_ATTITUDE_KEY 0xF3
-#define MAVLINK_MSG_30_KEY 0xF3
 
-typedef struct __mavlink_attitude_t 
+typedef struct __mavlink_attitude_t
 {
-	uint64_t usec;	///< Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-	float roll;	///< Roll angle (rad)
-	float pitch;	///< Pitch angle (rad)
-	float yaw;	///< Yaw angle (rad)
-	float rollspeed;	///< Roll angular speed (rad/s)
-	float pitchspeed;	///< Pitch angular speed (rad/s)
-	float yawspeed;	///< Yaw angular speed (rad/s)
-
+ uint32_t time_boot_ms; ///< Timestamp (milliseconds since system boot)
+ float roll; ///< Roll angle (rad)
+ float pitch; ///< Pitch angle (rad)
+ float yaw; ///< Yaw angle (rad)
+ float rollspeed; ///< Roll angular speed (rad/s)
+ float pitchspeed; ///< Pitch angular speed (rad/s)
+ float yawspeed; ///< Yaw angular speed (rad/s)
 } mavlink_attitude_t;
+
+#define MAVLINK_MSG_ID_ATTITUDE_LEN 28
+#define MAVLINK_MSG_ID_30_LEN 28
+
+
+
+#define MAVLINK_MESSAGE_INFO_ATTITUDE { \
+	"ATTITUDE", \
+	7, \
+	{  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT32_T, 0, 0, offsetof(mavlink_attitude_t, time_boot_ms) }, \
+         { "roll", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_attitude_t, roll) }, \
+         { "pitch", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_attitude_t, pitch) }, \
+         { "yaw", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_attitude_t, yaw) }, \
+         { "rollspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_attitude_t, rollspeed) }, \
+         { "pitchspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 20, offsetof(mavlink_attitude_t, pitchspeed) }, \
+         { "yawspeed", NULL, MAVLINK_TYPE_FLOAT, 0, 24, offsetof(mavlink_attitude_t, yawspeed) }, \
+         } \
+}
+
 
 /**
  * @brief Pack a attitude message
@@ -24,7 +38,7 @@ typedef struct __mavlink_attitude_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param roll Roll angle (rad)
  * @param pitch Pitch angle (rad)
  * @param yaw Yaw angle (rad)
@@ -33,29 +47,44 @@ typedef struct __mavlink_attitude_t
  * @param yawspeed Yaw angular speed (rad/s)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_attitude_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, uint64_t usec, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
+static inline uint16_t mavlink_msg_attitude_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
+						       uint32_t time_boot_ms, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[28];
+	_mav_put_uint32_t(buf, 0, time_boot_ms);
+	_mav_put_float(buf, 4, roll);
+	_mav_put_float(buf, 8, pitch);
+	_mav_put_float(buf, 12, yaw);
+	_mav_put_float(buf, 16, rollspeed);
+	_mav_put_float(buf, 20, pitchspeed);
+	_mav_put_float(buf, 24, yawspeed);
+
+        memcpy(_MAV_PAYLOAD(msg), buf, 28);
+#else
+	mavlink_attitude_t packet;
+	packet.time_boot_ms = time_boot_ms;
+	packet.roll = roll;
+	packet.pitch = pitch;
+	packet.yaw = yaw;
+	packet.rollspeed = rollspeed;
+	packet.pitchspeed = pitchspeed;
+	packet.yawspeed = yawspeed;
+
+        memcpy(_MAV_PAYLOAD(msg), &packet, 28);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_ATTITUDE;
-
-	p->usec = usec;	// uint64_t:Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-	p->roll = roll;	// float:Roll angle (rad)
-	p->pitch = pitch;	// float:Pitch angle (rad)
-	p->yaw = yaw;	// float:Yaw angle (rad)
-	p->rollspeed = rollspeed;	// float:Roll angular speed (rad/s)
-	p->pitchspeed = pitchspeed;	// float:Pitch angular speed (rad/s)
-	p->yawspeed = yawspeed;	// float:Yaw angular speed (rad/s)
-
-	return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_ATTITUDE_LEN);
+	return mavlink_finalize_message(msg, system_id, component_id, 28, 39);
 }
 
 /**
- * @brief Pack a attitude message
+ * @brief Pack a attitude message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param roll Roll angle (rad)
  * @param pitch Pitch angle (rad)
  * @param yaw Yaw angle (rad)
@@ -64,20 +93,36 @@ static inline uint16_t mavlink_msg_attitude_pack(uint8_t system_id, uint8_t comp
  * @param yawspeed Yaw angular speed (rad/s)
  * @return length of the message in bytes (excluding serial stream start sign)
  */
-static inline uint16_t mavlink_msg_attitude_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, uint64_t usec, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
+static inline uint16_t mavlink_msg_attitude_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
+							   mavlink_message_t* msg,
+						           uint32_t time_boot_ms,float roll,float pitch,float yaw,float rollspeed,float pitchspeed,float yawspeed)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[28];
+	_mav_put_uint32_t(buf, 0, time_boot_ms);
+	_mav_put_float(buf, 4, roll);
+	_mav_put_float(buf, 8, pitch);
+	_mav_put_float(buf, 12, yaw);
+	_mav_put_float(buf, 16, rollspeed);
+	_mav_put_float(buf, 20, pitchspeed);
+	_mav_put_float(buf, 24, yawspeed);
+
+        memcpy(_MAV_PAYLOAD(msg), buf, 28);
+#else
+	mavlink_attitude_t packet;
+	packet.time_boot_ms = time_boot_ms;
+	packet.roll = roll;
+	packet.pitch = pitch;
+	packet.yaw = yaw;
+	packet.rollspeed = rollspeed;
+	packet.pitchspeed = pitchspeed;
+	packet.yawspeed = yawspeed;
+
+        memcpy(_MAV_PAYLOAD(msg), &packet, 28);
+#endif
+
 	msg->msgid = MAVLINK_MSG_ID_ATTITUDE;
-
-	p->usec = usec;	// uint64_t:Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-	p->roll = roll;	// float:Roll angle (rad)
-	p->pitch = pitch;	// float:Pitch angle (rad)
-	p->yaw = yaw;	// float:Yaw angle (rad)
-	p->rollspeed = rollspeed;	// float:Roll angular speed (rad/s)
-	p->pitchspeed = pitchspeed;	// float:Pitch angular speed (rad/s)
-	p->yawspeed = yawspeed;	// float:Yaw angular speed (rad/s)
-
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_ATTITUDE_LEN);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 28, 39);
 }
 
 /**
@@ -90,16 +135,14 @@ static inline uint16_t mavlink_msg_attitude_pack_chan(uint8_t system_id, uint8_t
  */
 static inline uint16_t mavlink_msg_attitude_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_attitude_t* attitude)
 {
-	return mavlink_msg_attitude_pack(system_id, component_id, msg, attitude->usec, attitude->roll, attitude->pitch, attitude->yaw, attitude->rollspeed, attitude->pitchspeed, attitude->yawspeed);
+	return mavlink_msg_attitude_pack(system_id, component_id, msg, attitude->time_boot_ms, attitude->roll, attitude->pitch, attitude->yaw, attitude->rollspeed, attitude->pitchspeed, attitude->yawspeed);
 }
 
-
-#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 /**
  * @brief Send a attitude message
  * @param chan MAVLink channel to send the message
  *
- * @param usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param roll Roll angle (rad)
  * @param pitch Pitch angle (rad)
  * @param yaw Yaw angle (rad)
@@ -107,50 +150,48 @@ static inline uint16_t mavlink_msg_attitude_encode(uint8_t system_id, uint8_t co
  * @param pitchspeed Pitch angular speed (rad/s)
  * @param yawspeed Yaw angular speed (rad/s)
  */
-static inline void mavlink_msg_attitude_send(mavlink_channel_t chan, uint64_t usec, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
+#ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
+
+static inline void mavlink_msg_attitude_send(mavlink_channel_t chan, uint32_t time_boot_ms, float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed)
 {
-	mavlink_header_t hdr;
-	mavlink_attitude_t payload;
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+	char buf[28];
+	_mav_put_uint32_t(buf, 0, time_boot_ms);
+	_mav_put_float(buf, 4, roll);
+	_mav_put_float(buf, 8, pitch);
+	_mav_put_float(buf, 12, yaw);
+	_mav_put_float(buf, 16, rollspeed);
+	_mav_put_float(buf, 20, pitchspeed);
+	_mav_put_float(buf, 24, yawspeed);
 
-	MAVLINK_BUFFER_CHECK_START( chan, MAVLINK_MSG_ID_ATTITUDE_LEN )
-	payload.usec = usec;	// uint64_t:Timestamp (microseconds since UNIX epoch or microseconds since system boot)
-	payload.roll = roll;	// float:Roll angle (rad)
-	payload.pitch = pitch;	// float:Pitch angle (rad)
-	payload.yaw = yaw;	// float:Yaw angle (rad)
-	payload.rollspeed = rollspeed;	// float:Roll angular speed (rad/s)
-	payload.pitchspeed = pitchspeed;	// float:Pitch angular speed (rad/s)
-	payload.yawspeed = yawspeed;	// float:Yaw angular speed (rad/s)
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE, buf, 28, 39);
+#else
+	mavlink_attitude_t packet;
+	packet.time_boot_ms = time_boot_ms;
+	packet.roll = roll;
+	packet.pitch = pitch;
+	packet.yaw = yaw;
+	packet.rollspeed = rollspeed;
+	packet.pitchspeed = pitchspeed;
+	packet.yawspeed = yawspeed;
 
-	hdr.STX = MAVLINK_STX;
-	hdr.len = MAVLINK_MSG_ID_ATTITUDE_LEN;
-	hdr.msgid = MAVLINK_MSG_ID_ATTITUDE;
-	hdr.sysid = mavlink_system.sysid;
-	hdr.compid = mavlink_system.compid;
-	hdr.seq = mavlink_get_channel_status(chan)->current_tx_seq;
-	mavlink_get_channel_status(chan)->current_tx_seq = hdr.seq + 1;
-	mavlink_send_mem(chan, (uint8_t *)&hdr.STX, MAVLINK_NUM_HEADER_BYTES );
-	mavlink_send_mem(chan, (uint8_t *)&payload, sizeof(payload) );
-
-	crc_init(&hdr.ck);
-	crc_calculate_mem((uint8_t *)&hdr.len, &hdr.ck, MAVLINK_CORE_HEADER_LEN);
-	crc_calculate_mem((uint8_t *)&payload, &hdr.ck, hdr.len );
-	crc_accumulate( 0xF3, &hdr.ck); /// include key in X25 checksum
-	mavlink_send_mem(chan, (uint8_t *)&hdr.ck, MAVLINK_NUM_CHECKSUM_BYTES);
-	MAVLINK_BUFFER_CHECK_END
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_ATTITUDE, (const char *)&packet, 28, 39);
+#endif
 }
 
 #endif
+
 // MESSAGE ATTITUDE UNPACKING
 
+
 /**
- * @brief Get field usec from attitude message
+ * @brief Get field time_boot_ms from attitude message
  *
- * @return Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+ * @return Timestamp (milliseconds since system boot)
  */
-static inline uint64_t mavlink_msg_attitude_get_usec(const mavlink_message_t* msg)
+static inline uint32_t mavlink_msg_attitude_get_time_boot_ms(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (uint64_t)(p->usec);
+	return _MAV_RETURN_uint32_t(msg,  0);
 }
 
 /**
@@ -160,8 +201,7 @@ static inline uint64_t mavlink_msg_attitude_get_usec(const mavlink_message_t* ms
  */
 static inline float mavlink_msg_attitude_get_roll(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->roll);
+	return _MAV_RETURN_float(msg,  4);
 }
 
 /**
@@ -171,8 +211,7 @@ static inline float mavlink_msg_attitude_get_roll(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_attitude_get_pitch(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->pitch);
+	return _MAV_RETURN_float(msg,  8);
 }
 
 /**
@@ -182,8 +221,7 @@ static inline float mavlink_msg_attitude_get_pitch(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_attitude_get_yaw(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->yaw);
+	return _MAV_RETURN_float(msg,  12);
 }
 
 /**
@@ -193,8 +231,7 @@ static inline float mavlink_msg_attitude_get_yaw(const mavlink_message_t* msg)
  */
 static inline float mavlink_msg_attitude_get_rollspeed(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->rollspeed);
+	return _MAV_RETURN_float(msg,  16);
 }
 
 /**
@@ -204,8 +241,7 @@ static inline float mavlink_msg_attitude_get_rollspeed(const mavlink_message_t* 
  */
 static inline float mavlink_msg_attitude_get_pitchspeed(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->pitchspeed);
+	return _MAV_RETURN_float(msg,  20);
 }
 
 /**
@@ -215,8 +251,7 @@ static inline float mavlink_msg_attitude_get_pitchspeed(const mavlink_message_t*
  */
 static inline float mavlink_msg_attitude_get_yawspeed(const mavlink_message_t* msg)
 {
-	mavlink_attitude_t *p = (mavlink_attitude_t *)&msg->payload[0];
-	return (float)(p->yawspeed);
+	return _MAV_RETURN_float(msg,  24);
 }
 
 /**
@@ -227,5 +262,15 @@ static inline float mavlink_msg_attitude_get_yawspeed(const mavlink_message_t* m
  */
 static inline void mavlink_msg_attitude_decode(const mavlink_message_t* msg, mavlink_attitude_t* attitude)
 {
-	memcpy( attitude, msg->payload, sizeof(mavlink_attitude_t));
+#if MAVLINK_NEED_BYTE_SWAP
+	attitude->time_boot_ms = mavlink_msg_attitude_get_time_boot_ms(msg);
+	attitude->roll = mavlink_msg_attitude_get_roll(msg);
+	attitude->pitch = mavlink_msg_attitude_get_pitch(msg);
+	attitude->yaw = mavlink_msg_attitude_get_yaw(msg);
+	attitude->rollspeed = mavlink_msg_attitude_get_rollspeed(msg);
+	attitude->pitchspeed = mavlink_msg_attitude_get_pitchspeed(msg);
+	attitude->yawspeed = mavlink_msg_attitude_get_yawspeed(msg);
+#else
+	memcpy(attitude, _MAV_PAYLOAD(msg), 28);
+#endif
 }

@@ -79,3 +79,5 @@ flight/.project
 flight/.cproject
 flight/.settings
 
+ground/openpilotgcs/src/experimental/upload-build-desktop
+upload.pro.user

@@ -54,7 +54,7 @@
  *  Places the 12 byte serial number of the board in the buffer.
  *
  * <'b'>
- *  Reboots the board.
+ *  Boots the application.
  *
  * <'r'><addr>
  *  Copies FLASH_PAGE_SIZE bytes of memory from <addr> to the buffer
@@ -65,7 +65,6 @@
  *
  * <'v'>
  *  Places the versions structure (the same as the AHRS) in the buffer.
- *
  */
 
 /**

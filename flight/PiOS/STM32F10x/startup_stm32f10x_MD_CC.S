@@ -131,6 +131,11 @@ LoopFillZerobss:
   ldr  r3, = _ebss
   cmp  r2, r3
   bcc  FillZerobss
+
+/* place the thread stack limit in r10 (%sl) for debug purposes */
+  ldr  r2, =_init_stack_end
+  mov  r10, r2
+	
 /* Call the application's entry point.*/
   bl  main
 /* will never return here */
@@ -151,6 +156,11 @@ Stack_Change:
 /* Switches stack back momentarily to MSP */
   movs r0, #0
   msr control, r0
+
+/* place the irq stack limit in r10 (%sl) for debug purposes */
+  ldr  r2, =_irq_stack_end
+  mov  r10, r2
+
 Heap_Reclaim:
 /* add heap_post_rtos to the heap (if the capability/function exist) */
 /* Also claim the unused memory (between end of heap to end of memory */

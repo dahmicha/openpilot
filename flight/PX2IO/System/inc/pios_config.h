@@ -42,7 +42,7 @@
 #define PIOS_INCLUDE_IRQ
 #define PIOS_INCLUDE_LED
 #define PIOS_INCLUDE_RCVR
-#define PIOS_INCLUDE_RTC
+//#define PIOS_INCLUDE_RTC
 #define PIOS_INCLUDE_SERVO
 #define PIOS_INCLUDE_SYS
 #define PIOS_INCLUDE_USART
@@ -58,7 +58,7 @@
 #if defined(USE_SPEKTRUM)
 #define PIOS_INCLUDE_SPEKTRUM
 #else
-#define PIOS_INCLUDE_PPM
+//#define PIOS_INCLUDE_PPM
 #endif
 
 
