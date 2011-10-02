@@ -41,8 +41,6 @@
 #define PIOS_INCLUDE_USART
 #define PIOS_INCLUDE_COM
 #define PIOS_INCLUDE_GPIO
-#define PIOS_NO_GPS
-//#define DEBUG_SSP
 
 #endif /* PIOS_CONFIG_H */
 /**

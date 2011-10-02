@@ -87,9 +87,7 @@ DOXYGENDIR = ../Doc/Doxygen
 ## OPENPILOT_BL CORE:
 SRC += $(OPSYSTEM)/main.c
 SRC += $(OPSYSTEM)/pios_board.c
-SRC += $(OPSYSTEM)/op_dfu.c
-SRC += $(FLIGHTLIB)/stopwatch.c
-SRC += $(OPSYSTEM)/ssp.c
+SRC += $(OPSYSTEM)/dfu.c
 SRC += $(OPSYSTEM)/dcc_stdio.c
 SRC += $(OPSYSTEM)/cm3_fault_handlers.c
 
