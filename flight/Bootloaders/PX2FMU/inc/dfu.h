@@ -9,11 +9,30 @@
 #define DFU_H_
 
 #include <stdint.h>
-
 /*
- * Trivial DFU protocol defines for the serial DFU engine.
+ * Serial DFU
+ *
+ * This protocol implements a fairly literal interpretation of the USB
+ * DFU protocol over bidirectional async serial.
+ *
+ * Each packet in either direction is preceded by a 4-byte preamble, 'sDFU'.
+ * Host->device packets then contain a DFUHeader struct, which conveys the
+ * same information as a DFU request in the USB version of the protocol.
+ * Device->host packet contents are specific to the request that generates them.
+ *
+ * The DFU state machine is implemented with a few variations:
+ * - serial cannot stall, so transitions that would normally result in a stall
+ *   are just NOPs; the device generates no result, and usually enters the
+ *   dfuError state.
+ * - serial has no metadata interface, so a new command DFU_GET_INFO returns
+ *   a DFUDescriptor structure that contains the essential fields from the
+ *   DFU device USB descriptors.
+ * - serial has no concept of disconnect or reset, so the device will reboot
+ *   as soon as the MANIFEST_SYNC reply is sent.
+ *
  */
 
+/* DFU commands */
 #define	DFU_DETACH		0
 #define	DFU_DNLOAD		1
 #define	DFU_UPLOAD		2

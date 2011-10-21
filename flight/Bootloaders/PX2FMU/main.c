@@ -100,10 +100,21 @@ int main(void)
 
 		/* has the host told us to try booting? */
 		if (try_boot) {
+
+			/* allow time for serial/USB replies to make it back to the host */
+			PIOS_DELAY_WaitmS(500);
+
+			/* and go run the app */
 			jump_to_app();
-			/* for now, lock up here */
-			for (;;)
-				;
+
+			/* for now, lock up here if we can't start it - otherwise we need to restart DFU */
+			PIOS_LED_On(LED1);
+			PIOS_LED_Off(LED2);
+			for (;;) {
+				PIOS_DELAY_WaitmS(LED_TOGGLE_INTERVAL);
+				PIOS_LED_Toggle(LED1);
+				PIOS_LED_Toggle(LED2);
+			}
 		}
 	}
 }

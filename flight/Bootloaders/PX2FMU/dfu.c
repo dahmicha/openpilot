@@ -4,6 +4,15 @@
  *  Created on: Sep 30, 2011
  *      Author: msmith
  */
+/*
+ * State machines for the Serial DFU protocol implementation.
+ *
+ * Serial DFU implements the USB DFU protocol (with some variations) over
+ * async bidirectional serial.
+ *
+ * All messages are preceded by the four-byte preamble 'sDFU'.  Host->device messages
+ * feature a standard header (struct DFUHeader)
+ */
 
 #include <stdbool.h>
 #include <string.h>
@@ -13,6 +22,7 @@
 
 extern bool try_boot;
 
+/** Serial DFU encapsulation decoder states */
 enum PKTState {
 	PKT_WAIT_PRE0	= 0,
 	PKT_WAIT_PRE1	= 1,
@@ -20,6 +30,8 @@ enum PKTState {
 	PKT_WAIT_PRE3	= 3,
 	PKT_GET_PKT		= 4,
 };
+
+/** Serial DFU wire preamble */
 static const char preamble[] = { 's', 'D', 'F', 'U' };
 
 static int 					_pkt_state = PKT_WAIT_PRE0;	// packet parser machine state
