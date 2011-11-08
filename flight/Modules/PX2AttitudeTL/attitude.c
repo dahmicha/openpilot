@@ -231,8 +231,8 @@ static void attitudeTask(void *parameters)
 		static int servoUp = 0;
 		static bool upcounting = true;
 		PIOS_Servo_Set(0, servoBase+servoUp);
-		//PIOS_Servo_Set(1, servoBase+servoUp); // BUZZER channel
-		//PIOS_Servo_Set(2, servoBase+servoUp);
+		PIOS_Servo_Set(1, servoBase+servoUp); // BUZZER channel
+		PIOS_Servo_Set(2, servoBase+servoUp);
 		PIOS_Servo_Set(3, servoBase+servoUp);
 		if (upcounting)
 		{
