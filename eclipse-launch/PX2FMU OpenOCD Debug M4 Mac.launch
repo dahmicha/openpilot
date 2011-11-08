@@ -7,7 +7,7 @@
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.action" value="NONE"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.enabled" value="true"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.mode" value="debug"/>
-<stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.name" value="openpilot-flight PX2FMU"/>
+<stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.name" value="openpilot-flight PX2FMU M4"/>
 <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
 </listAttribute>

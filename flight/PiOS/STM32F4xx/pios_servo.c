@@ -125,16 +125,26 @@ void PIOS_Servo_SetHz(uint16_t * speeds, uint8_t banks)
 #ifndef PIOS_ENABLE_DEBUG_PINS
 #if defined(PIOS_INCLUDE_SERVO)
 
+	uint32_t freq;
+
 	/* get clock info */
-	RCC_ClocksTypeDef	clocks;
-	RCC_GetClocksFreq(&clocks);
-	// PCLK1 is for APB1, to which TIM2-7 are connected
-	// XXX FIXME ASSUME APB1 here
-	uint32_t freq = clocks.PCLK1_Frequency;
+	RCC_GetClocksFreq(&bus_clocks);
+
+	/* pick the right APB clock and scale to actual clock input */
+	switch ((uintptr_t)pios_servo_cfg.channels[i].timer) {
+	case (uintptr_t)TIM1:
+	case (uintptr_t)TIM8:
+	case (uintptr_t)TIM9:
+	case (uintptr_t)TIM10:
+	case (uintptr_t)TIM11:
+		freq = bus_clocks.PCLK2_Frequency * 2;
+		break;
+	default:
+		freq = bus_clocks.PCLK1_Frequency * 2;
+		break;
+	}
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure = pios_servo_cfg.tim_base_init;
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Prescaler	= (freq / 1000000 - 1);
 
 	uint8_t set = 0;
@@ -174,20 +184,19 @@ void PIOS_Servo_Set(uint8_t Servo, uint16_t Position)
 		switch(pios_servo_cfg.channels[Servo].channel) {
 			case TIM_Channel_1:
 				servo_positions[Servo] = Position;
-				TIM_SetCompare1(pios_servo_cfg.channels[Servo].timer, Position*4-3000);  // XXX HACK, x4-3000 factor should not be here
-				PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "S:%d\n", Position);
+				TIM_SetCompare1(pios_servo_cfg.channels[Servo].timer, Position);
 				break;
 			case TIM_Channel_2:
-				servo_positions[Servo] = Position; // XXX HACK, x4 factor should not be here
-				TIM_SetCompare2(pios_servo_cfg.channels[Servo].timer, Position*4-3000); // XXX HACK, x4-3000 factor should not be here
+				servo_positions[Servo] = Position;
+				TIM_SetCompare2(pios_servo_cfg.channels[Servo].timer, Position);
 				break;
 			case TIM_Channel_3:
-				servo_positions[Servo] = Position; // XXX HACK, x4 factor should not be here
-				TIM_SetCompare3(pios_servo_cfg.channels[Servo].timer, Position*4-3000); // XXX HACK, x4-3000 factor should not be here
+				servo_positions[Servo] = Position;
+				TIM_SetCompare3(pios_servo_cfg.channels[Servo].timer, Position);
 				break;
 			case TIM_Channel_4:
-				servo_positions[Servo] = Position; // XXX HACK, x4 factor should not be here
-				TIM_SetCompare4(pios_servo_cfg.channels[Servo].timer, Position*4-3000); // XXX HACK, x4-3000 factor should not be here
+				servo_positions[Servo] = Position;
+				TIM_SetCompare4(pios_servo_cfg.channels[Servo].timer, Position);
 				break;
 		}
 	}
