@@ -37,6 +37,11 @@
 #ifdef PIOS_INCLUDE_SERVO
 uint16_t servo_positions[8];
 #endif
+
+/* keep a private copy because we don't have a global copy yet */
+static RCC_ClocksTypeDef	bus_clocks;
+
+
 /**
 * Initialise Servos
 */
@@ -44,13 +49,10 @@ void PIOS_Servo_Init(void)
 {
 #ifndef PIOS_ENABLE_DEBUG_PINS
 #ifdef PIOS_INCLUDE_SERVO
+	uint32_t freq;
 
 	/* get clock info */
-	RCC_ClocksTypeDef	clocks;
-	RCC_GetClocksFreq(&clocks);
-	// PCLK1 is for APB1, to which TIM2-7 are connected
-	// XXX FIXME ASSUME APB1 here
-	uint32_t freq = clocks.PCLK1_Frequency;
+	RCC_GetClocksFreq(&bus_clocks);
 
 	for (uint8_t i = 0; i < pios_servo_cfg.num_channels; i++) {
 		GPIO_InitTypeDef GPIO_InitStructure = pios_servo_cfg.gpio_init;
@@ -61,6 +63,20 @@ void PIOS_Servo_Init(void)
 		GPIO_InitStructure.GPIO_Pin = pios_servo_cfg.channels[i].pin;
 		GPIO_Init(pios_servo_cfg.channels[i].port, &GPIO_InitStructure);
 		GPIO_PinAFConfig(pios_servo_cfg.channels[i].port, pios_servo_cfg.channels[i].pin_source, pios_servo_cfg.remap);
+
+		/* pick the right APB clock and scale to actual clock input */
+		switch ((uintptr_t)pios_servo_cfg.channels[i].timer) {
+		case (uintptr_t)TIM1:
+		case (uintptr_t)TIM8:
+		case (uintptr_t)TIM9:
+		case (uintptr_t)TIM10:
+		case (uintptr_t)TIM11:
+			freq = bus_clocks.PCLK2_Frequency * 2;
+			break;
+		default:
+			freq = bus_clocks.PCLK1_Frequency * 2;
+			break;
+		}
 
 		/* configure for 1kHz auto-reload cycle */
 		//TIM_TimeBaseStructInit(&TIMInit);
