@@ -92,6 +92,11 @@ int32_t PIOS_RCVR_Read(uint32_t rcvr_id, uint8_t channel)
   return rcvr_dev->driver->read(rcvr_dev->lower_id, channel);
 }
 
+uint8_t PIOS_RCVR_GetRSSI(uint32_t rcvr_id)
+{
+	return 200;
+}
+
 #endif
 
 /**

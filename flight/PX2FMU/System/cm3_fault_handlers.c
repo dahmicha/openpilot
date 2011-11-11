@@ -7,10 +7,15 @@
 
 #include <stdint.h>
 #include "dcc_stdio.h"
-#include "stm32f2xx.h"
+#ifdef STM32F4XX
+# include "stm32f4xx.h"
+#endif
+#ifdef STM32F2XX
+# include "stm32f2xx.h"
+#endif
 
 #define FAULT_TRAMPOLINE(_vec)										\
-__attribute__((naked))												\
+__attribute__((naked, no_instrument_function))						\
 void																\
 _vec##_Handler(void)												\
 {																	\

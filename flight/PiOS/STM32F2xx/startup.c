@@ -41,7 +41,9 @@ _main(void)
 {
 	asm volatile ("mov r10, %0" : : "r" (&irq_stack[0]) : );
 
-	//*(volatile unsigned long*)0xe000ed24 = 3 << 17;
+	//*(volatile unsigned long*)0xe000ed24 = 3 << 17;	// extra fault handlers
+
+	*(volatile unsigned long *)0xE000ED88 |= (0xf << 20);	// turn on CP10/11 for FP support on cores that implement it
 
 	/* copy initialised data from flash to RAM */
 	memcpy(&_sdata, &_sidata, &_edata - &_sdata);

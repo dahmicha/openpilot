@@ -73,7 +73,7 @@ void PIOS_BMP085_Init(void)
 	PIOS_BMP085_EOC = 0;
 #endif
 
-#ifdef STM32F2XX
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	/* Configure EOC pin as input floating */
 	GPIO_InitStructure.GPIO_Pin = PIOS_BMP085_EOC_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;

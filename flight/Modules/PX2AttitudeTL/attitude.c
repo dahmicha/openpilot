@@ -56,24 +56,29 @@
 #include "attitudesettings.h"
 #include "flightstatus.h"
 #include "CoordinateConversions.h"
-//#include "attitude_observer.h"
 #include "attitude_tobi_laurens.h"
 
 #include "pios_i2c_esc.h"
-#include "mavlink_debug.h"
+
+// Measurement range setup
+#define GYRO_RANGE_500DPS
 
 // Private constants
-#define STACK_SIZE_BYTES			4096						// XXX re-evaluate
+#define STACK_SIZE_BYTES			5096						// XXX re-evaluate
 #define STACK_SIZE_SENSOR_BYTES		2048
-#define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + 3)	// high
+#define STACK_SIZE_MAG_BYTES		2048
+#define ATTITUDE_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 2)	// high
 #define SENSOR_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	// must be higher than attitude_task
+#define MAG_TASK_PRIORITY	(tskIDLE_PRIORITY + configMAX_PRIORITIES - 1)	    // must be higher than attitude_task
 
 // update/polling rates
 // expressed in microseconds to evade float calculations in
 // in C-preprocessor
 // 5000 = 5 ms = 5000 us
-#define UPDATE_INTERVAL_TICKS		(5000 / (portTICK_RATE_MS*1000))			// update every 5ms
-#define SENSOR_POLL_INTERVAL_TICKS	(1250  / (portTICK_RATE_MS*1000))			// poll sensors every 1.25ms / 800 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define UPDATE_INTERVAL_TICKS		(5 / portTICK_RATE_MS)		  // update every 5ms / 200 Hz
+#define SENSOR_POLL_INTERVAL_TICKS	(1 / portTICK_RATE_MS)	      // poll sensors every 1ms / 1000 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+#define MAG_POLL_INTERVAL_TICKS	(5 / portTICK_RATE_MS)			  // poll sensors every 5ms / 200 Hz (we get heavy problems if faster!!! XXX FIXME TODO)
+
 
 // allow 100% extra sample space to allow the attitude update to run a bit late
 #define MAX_SAMPLES_PER_UPDATE		(2 * (UPDATE_INTERVAL_TICKS / SENSOR_POLL_INTERVAL_TICKS))
@@ -91,6 +96,7 @@ struct sample_buffer {
 // Private variables
 static xTaskHandle attitudeTaskHandle;
 static xTaskHandle sensorTaskHandle;
+static xTaskHandle magTaskHandle;
 static volatile struct sample_buffer sampleBuffer[2];
 static struct pios_hmc5883_data savedMagData;
 static volatile int activeSample = 0;
@@ -102,6 +108,7 @@ static volatile int activeSample = 0;
 // Private functions
 static void attitudeTask(void *parameters);
 static void sensorTask(void *parameters);
+static void magTask(void *parameters);
 static void updateSensors(AttitudeRawData *attitudeRaw);
 static void updateAttitude(AttitudeRawData *attitudeRaw);
 //static void settingsUpdatedCb(UAVObjEvent * objEv);
@@ -113,8 +120,11 @@ int32_t PX2AttitudeTLStart()
 	TaskMonitorAdd(TASKINFO_RUNNING_ATTITUDE, attitudeTaskHandle);
 	PIOS_WDG_RegisterFlag(PIOS_WDG_ATTITUDE);
 	// Kick off the sensor task now that the sensors are ready
-	xTaskCreate(sensorTask, (signed char *)"AttitudeSensors", STACK_SIZE_SENSOR_BYTES / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
+	xTaskCreate(sensorTask, (signed char *)"AttSPISensors", STACK_SIZE_SENSOR_BYTES / 4, NULL, SENSOR_TASK_PRIORITY, &sensorTaskHandle);
 	TaskMonitorAdd(TASKINFO_RUNNING_AHRSCOMMS, sensorTaskHandle);	// XXX really should get our own taskinfo
+
+	xTaskCreate(magTask, (signed char *)"AttMagSensor", STACK_SIZE_MAG_BYTES / 4, NULL, MAG_TASK_PRIORITY, &magTaskHandle);
+	// FIXME ADD TASK MONITOR
 
 	// The attitude task is running, clear the alarm that would complain otherwise
 	AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
@@ -138,16 +148,23 @@ int32_t PX2AttitudeTLInitialize(void)
 	// Initialize quaternion
 	AttitudeActualData attitude;
 	AttitudeActualGet(&attitude);
-	attitude.q1 = 1;
-	attitude.q2 = 0;
-	attitude.q3 = 0;
-	attitude.q4 = 0;
+	attitude.q1 = 1.0f;
+	attitude.q2 = 0.0f;
+	attitude.q3 = 0.0f;
+	attitude.q4 = 0.0f;
 	AttitudeActualSet(&attitude);
 
 	AttitudeMatrixData attitudeMatrix;
 	AttitudeMatrixGet(&attitudeMatrix);
-//TODO make identity matrix
-
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_X] = 0.0f;
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Y] = 0.0f;
+	attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Z] = 0.0f;
+	attitudeMatrix.Roll = 0.0f;
+	attitudeMatrix.Pitch = 0.0f;
+	attitudeMatrix.Yaw = 0.0f;
+	attitudeMatrix.RotationMatrix[1] = 0; attitudeMatrix.RotationMatrix[1] = 0; attitudeMatrix.RotationMatrix[2] = 0;
+	attitudeMatrix.RotationMatrix[3] = 0; attitudeMatrix.RotationMatrix[4] = 1; attitudeMatrix.RotationMatrix[5] = 0;
+	attitudeMatrix.RotationMatrix[6] = 0; attitudeMatrix.RotationMatrix[7] = 0; attitudeMatrix.RotationMatrix[8] = 1;
 	AttitudeMatrixSet(&attitudeMatrix);
 	return 0;
 }
@@ -169,10 +186,15 @@ static void attitudeTask(void *parameters)
 	// Configure gyro
 	PIOS_L3G4200_Init();
 	PIOS_L3G4200_SelectRate(L3G4200_RATE_800Hz);
+#ifdef GYRO_RANGE_500DPS
+	PIOS_L3G4200_SetRange(L3G4200_RANGE_500dps);
+#else
 	PIOS_L3G4200_SetRange(L3G4200_RANGE_2000dps);
+#endif
 
 	// Configure magnetometer
 	PIOS_HMC5883_Init();
+
 	vTaskDelay(1);
 
 	attitude_tobi_laurens_init();
@@ -186,9 +208,6 @@ static void attitudeTask(void *parameters)
 
 	// Record the time at which we have started
 	lastSysTime = xTaskGetTickCount();
-
-	// XXX THIS SHOULD NOT BE HERE
-	//PIOS_I2C_ESC_Config();
 
 	// Main task loop
 	while (1) {
@@ -223,7 +242,6 @@ static void sensorTask(void *parameters)
 	volatile struct sample_buffer *sb;
 	int ac;	// local copy to avoid aliasing rules
 	int gc;	// local copy to avoid aliasing rules
-	int mc;	// local copy to avoid aliasing rules
 
 	vTaskDelay(1);
 
@@ -232,9 +250,9 @@ static void sensorTask(void *parameters)
 	lastSysTime = xTaskGetTickCount();
 	for (;;) {
 		sb = &sampleBuffer[activeSample];
+
 		ac = sb->accel_count;	// local copy to avoid aliasing rules
 		gc = sb->gyro_count;	// local copy to avoid aliasing rules
-		mc = sb->mag_count; 	// local copy to avoid aliasing rules
 
 		// accumulate accel reading if available
 		if (ac < MAX_SAMPLES_PER_UPDATE) {
@@ -250,9 +268,47 @@ static void sensorTask(void *parameters)
 			}
 		}
 
+		// Pause until we are ready to poll again.
+		//
+		// Don't waste time trying to adjust the deadline based on the
+		// difference between scheduled time and actual time - if we have been
+		// delayed it's because the system already can't keep up, trying to run
+		// sooner isn't going to help.
+		vTaskDelayUntil(&lastSysTime, SENSOR_POLL_INTERVAL_TICKS);
+	}
+}
+
+/**
+ * Poll the accelerometer and gyro sensors for their most recent readings.
+ *
+ * For this to work well, the FreeRTOS timers should be running at maximum
+ * priority, and the tick rate should be sufficiently high that this will be
+ * as fast as or faster than the sensor sample rates.
+ *
+ * For PX2 this is nominally the case (1kHz tick rate, timers at max priority).
+ * Alternatively, this would need to hijack a hardware timer and run at
+ * interrupt context.
+ */
+static void magTask(void *parameters)
+{
+	volatile struct sample_buffer *sb;
+	int mc;	// local copy to avoid aliasing rules
+
+
+	vTaskDelay(1);
+
+	portTickType lastSysTime;
+
+	lastSysTime = xTaskGetTickCount();
+	for (;;) {
 		// accumulate mag reading if available
-		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable()) {
-			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&sb->mag[mc]);
+		if ((mc < MAX_SAMPLES_PER_UPDATE) && PIOS_HMC5883_NewDataAvailable())
+		{
+			struct pios_hmc5883_data magdata;
+			PIOS_HMC5883_ReadMag((struct pios_hmc5883_data *)&magdata);
+			sb = &sampleBuffer[activeSample];
+			mc = sb->mag_count; 	// local copy to avoid aliasing rules
+			sb->mag[mc] = magdata;
 			sb->mag_count = mc + 1;
 		}
 
@@ -262,7 +318,7 @@ static void sensorTask(void *parameters)
 		// difference between scheduled time and actual time - if we have been
 		// delayed it's because the system already can't keep up, trying to run
 		// sooner isn't going to help.
-		vTaskDelayUntil(&lastSysTime, SENSOR_POLL_INTERVAL_TICKS);
+		vTaskDelayUntil(&lastSysTime, MAG_POLL_INTERVAL_TICKS);
 	}
 }
 
@@ -281,6 +337,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 
 	// exchange sample buffers
 	activeSample = other_sample;
+
+	//vTaskDelay(1);	//TODO XXX FIXME: why does the mag update only every 2 sec if this is not here - there has to be an sync problem with the buffer
 
 	// and now address the fresh sample buffer, containing the last polling period's data
 	other_sample = activeSample ^ 1;
@@ -301,6 +359,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	if (!sb->accel_count || !sb->gyro_count) {
 		AlarmsSet(SYSTEMALARMS_ALARM_ATTITUDE, SYSTEMALARMS_ALARM_WARNING);
 		return;
+	} else {
+		AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
 	}
 
 
@@ -310,9 +370,64 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		// XXX what to do here, if anything?
 	}
 
-#if 1
+#if 1 // Enable oversampling
 	// Accumulate measurements (oversampling)
 	{
+#if 1 // Normal lowpass, no moving average
+		//		axs = 0.93f*axs+0.07f*(ax / sb->gyro_count);
+		//		ays = 0.93f*ays+0.07f*(ay / sb->gyro_count);
+		//		azs = 0.93f*azs+0.07f*(az / sb->gyro_count);
+
+
+		static int32_t axs = 1;
+		static int32_t ays = 1;
+		static int32_t azs = 1;
+
+		// Currently 15 Hz cut-off / 0.09
+		const float t = 0.09f;//0.25f; //0.36
+
+		for (int i = 0; i < sb->gyro_count; ++i)
+		{
+			axs = (1.0f-t)*axs+t*sb->gyro[i].x;
+			ays = (1.0f-t)*ays+t*sb->gyro[i].y;
+			azs = (1.0f-t)*azs+t*sb->gyro[i].z;
+		}
+
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = axs;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] = ays;
+		attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] = azs;
+
+		static int32_t accxs = 1;
+		static int32_t accys = 1;
+		static int32_t acczs = 1;
+
+		for (int i = 0; i < sb->accel_count; ++i)
+		{
+			accxs = (1.0f-t)*accxs+t*sb->accel[i].x;
+			accys = (1.0f-t)*accys+t*sb->accel[i].y;
+			acczs = (1.0f-t)*acczs+t*sb->accel[i].z;
+		}
+
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_X] = accxs;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = accys;
+		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = acczs;
+
+		static int32_t magxs = 1;
+		static int32_t magys = 1;
+		static int32_t magzs = 1;
+
+		for (int i = 0; i < sb->mag_count; ++i)
+		{
+			magxs = (1.0f-t)*magxs+t*sb->mag[i].x;
+			magys = (1.0f-t)*magys+t*sb->mag[i].y;
+			magzs = (1.0f-t)*magzs+t*sb->mag[i].z;
+		}
+
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = magxs;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = magys;
+		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = magzs;
+
+#else
 		int32_t ax;
 		int32_t ay;
 		int32_t az;
@@ -337,6 +452,7 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] = ay / sb->accel_count;
 		attitudeRaw->accels[ATTITUDERAW_ACCELS_Z] = az / sb->accel_count;
 
+
 		ax = ay = az = 0;
 		for (int i = 0; i < sb->mag_count; i++) {
 			ax += sb->mag[i].x;
@@ -346,6 +462,7 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_X] = ax / sb->mag_count;
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Y] = ay / sb->mag_count;
 		attitudeRaw->magnetometers[ATTITUDERAW_MAGNETOMETERS_Z] = az / sb->mag_count;
+#endif
 	}
 #else
 	attitudeRaw->gyros[ATTITUDERAW_GYROS_X] = sb->gyro->x;
@@ -374,11 +491,16 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 {
 	//all measurement vectors need to be turn into the body frame
 	//z negative; x and y exchanged.
-
 	float_vect3 gyro; //rad/s
+#ifdef GYRO_RANGE_500DPS
+	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
+#else
 	gyro.x = attitudeRaw->gyros[ATTITUDERAW_GYROS_Y] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 	gyro.y = attitudeRaw->gyros[ATTITUDERAW_GYROS_X] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
 	gyro.z = - attitudeRaw->gyros[ATTITUDERAW_GYROS_Z] * 0.00106526444f /* = gyro * (2000.0f / 180.0f * pi / 32768.0f ) */;
+#endif
 
 	float_vect3 accel; //length 1 = / 4096
 	accel.x = attitudeRaw->accels[ATTITUDERAW_ACCELS_Y] * 0.000244140625f; // = accel * (1 / 32768.0f / 8.0f * 9.81f);
@@ -410,6 +532,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
 	AttitudeMatrixSet(&attitudeMatrix);
 
+//	debug_vect("ang", (float_vect3 *) &(attitudeMatrix.Roll));
+//	debug_vect("x_n_b", (float_vect3 *)
+
 //	attitudeMatrix.Roll=tmp.x;
 //	attitudeMatrix.Pitch=tmp.y;
 //	attitudeMatrix.Yaw=tmp.z;
@@ -420,9 +545,9 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 	attitudeActual.Pitch = attitudeMatrix.Pitch * 57.2957795f;
 	attitudeActual.Yaw   = attitudeMatrix.Yaw* 57.2957795f;
 
-	//attitudeActual.RollSpeed  = angularRates.x * 57.2957795f;
-	//attitudeActual.PitchSpeed = angularRates.y * 57.2957795f;
-	//attitudeActual.YawSpeed   = angularRates.z * 57.2957795f;
+	attitudeActual.RollRate  = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_X] * 57.2957795f;
+	attitudeActual.PitchRate = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Y] * 57.2957795f;
+	attitudeActual.YawRate   = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Z] * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
 

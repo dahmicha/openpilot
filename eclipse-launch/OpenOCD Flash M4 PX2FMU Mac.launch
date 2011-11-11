@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.ui.externaltools.ProgramLaunchConfigurationType">
+<listAttribute key="org.eclipse.debug.ui.favoriteGroups">
+<listEntry value="org.eclipse.ui.externaltools.launchGroup"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE" value="${none}"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="/Users/lomeier/sat/bin/openocd"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--search /Users/lomeier/cm3/share/openocd --search flight/Project/OpenOCD -f interface/jtagkey-tiny.cfg -f stm32f4xx.cfg  -c init -c &quot;reset halt&quot; &#10;                         -c &quot;flash write_image erase build/fw_px2fmu/fw_px2fmu.elf&quot; -c &quot;target_request debugmsgs enable&quot; -c &quot;reset run&quot; -c shutdown"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${workspace_loc:/openpilot-flight}"/>
+</launchConfiguration>

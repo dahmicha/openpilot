@@ -7,7 +7,7 @@
         <field name="accels" units="m/s^2" type="float" elementnames="X,Y,Z"/>
         <access gcs="readwrite" flight="readwrite"/>
         <telemetrygcs acked="false" updatemode="manual" period="0"/>
-        <telemetryflight acked="false" updatemode="periodic" period="1000"/>
+        <telemetryflight acked="false" updatemode="periodic" period="50"/>
         <logging updatemode="never" period="0"/>
     </object>
 </xml>

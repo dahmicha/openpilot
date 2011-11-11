@@ -8,7 +8,7 @@ define reflash
 	mon reset
 end
 
-directory ./flight/project/gdb
+directory ./flight/Project/gdb
 source CortexM3
 source FreeRTOS
 #source zalloc

@@ -36,6 +36,7 @@
 
 /* Enable/Disable PiOS Modules */
 #define PIOS_INCLUDE_ADC
+#define PIOS_ADC_USE_TEMP_SENSOR
 #define PIOS_INCLUDE_BMP085
 #define PIOS_INCLUDE_COM
 #define PIOS_INCLUDE_DELAY
@@ -58,7 +59,13 @@
 #define PIOS_INCLUDE_USART
 #define PIOS_INCLUDE_SDCARD       // XXX needs proper system alarm setup, missing SD card is NOT an alarm event
 
+
+// ONLY SERVO OR BUZZER CAN BE ENABLED
+#define PIOS_INCLUDE_SERVO
+
+#ifndef PIOS_INCLUDE_SERVO
 #define PIOS_INCLUDE_BUZZER
+#endif
 
 //#define PIOS_INCLUDE_USB_HID		// XXX needs PiOS support work
 //#define PIOS_INCLUDE_HCSR04		// XXX needs PiOS support work

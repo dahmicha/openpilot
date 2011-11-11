@@ -320,7 +320,7 @@ uavobjgenerator:
 	  $(MAKE) --no-print-directory -w ; \
 	)
 
-UAVOBJ_TARGETS := gcs flight python matlab java
+UAVOBJ_TARGETS := gcs flight python matlab java mavlink
 .PHONY:uavobjects
 uavobjects:  $(addprefix uavobjects_, $(UAVOBJ_TARGETS))
 
@@ -355,7 +355,7 @@ define FW_TEMPLATE
 $(1): fw_$(1)_opfw
 fw_$(1): fw_$(1)_opfw
 
-fw_$(1)_%: uavobjects_flight
+fw_$(1)_%: uavobjects_flight uavobjects_mavlink
 	$(V1) mkdir -p $(BUILD_DIR)/fw_$(1)/dep
 	$(V1) cd $(ROOT_DIR)/flight/$(2) && \
 		$$(MAKE) -r --no-print-directory \

@@ -56,10 +56,14 @@
 #define LED_BLINK_RATE_HZ 5
 
 #ifndef IDLE_COUNTS_PER_SEC_AT_NO_LOAD
-#ifndef STM32F2XX
-#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // calibrated by running tests/test_cpuload.c
-#else
-#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1172265	// calibrated by running tests/test_cpuload.c
+#ifdef STM32F2XX
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // STM32F2xx, calibrated by running tests/test_cpuload.c
+#endif
+#ifdef STM32F4XX
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1467993  // STM32F4xx, calibrated by running tests/test_cpuload.c
+#endif
+#if !(defined(STM32F2XX)) && !(defined(STM32F4XX))
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1172265	// STM32F1xx, calibrated by running tests/test_cpuload.c
 											  // must be updated if the FreeRTOS or compiler
 											  // optimisation options are changed.
 #endif
@@ -68,7 +72,7 @@
 #if defined(PIOS_SYSTEM_STACK_SIZE)
 #define STACK_SIZE_BYTES PIOS_SYSTEM_STACK_SIZE
 #else
-#define STACK_SIZE_BYTES 1200
+#define STACK_SIZE_BYTES 2048
 #endif
 
 #define TASK_PRIORITY (tskIDLE_PRIORITY+2)
@@ -196,6 +200,13 @@ static void objectUpdatedCb(UAVObjEvent * ev)
 {
 	ObjectPersistenceData objper;
 	UAVObjHandle obj;
+
+//	// DEBUG
+//	if (ev->obj == SystemAlarmsHandle()) {
+//		SystemAlarmsData alarm;
+//		SystemAlarmsGet(&alarm);
+//		PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "ALARM: %d\r\n", alarm.Alarm);
+//	}
 
 	// If the object updated was the ObjectPersistence execute requested action
 	if (ev->obj == ObjectPersistenceHandle()) {
@@ -371,16 +382,24 @@ static void updateStats()
 	if (now > lastTickCount) {
 		uint32_t dT = (xTaskGetTickCount() - lastTickCount) * portTICK_RATE_MS;	// in ms
 		stats.CPULoad =
-			100 - (uint8_t) round(100.0 * ((float)idleCounter / ((float)dT / 1000.0)) / (float)IDLE_COUNTS_PER_SEC_AT_NO_LOAD);
+			100 - (uint8_t) roundf(100.0f * ((float)idleCounter / ((float)dT / 1000.0f)) / (float)IDLE_COUNTS_PER_SEC_AT_NO_LOAD);
 	} //else: TickCount has wrapped, do not calc now
 	lastTickCount = now;
 	idleCounterClear = 1;
 	
 #if defined(PIOS_INCLUDE_ADC) && defined(PIOS_ADC_USE_TEMP_SENSOR)
-	float temp_voltage = 3.3 * PIOS_ADC_PinGet(0) / ((1 << 12) - 1);
-	const float STM32_TEMP_V25 = 1.43; /* V */
-	const float STM32_TEMP_AVG_SLOPE = 4.3; /* mV/C */
-	stats.CPUTemp = (temp_voltage-STM32_TEMP_V25) * 1000 / STM32_TEMP_AVG_SLOPE + 25;
+#if defined(STM32F2XX) || defined(STM32F4XX)
+	// STM32F2XX and STM32F4XX sensor values
+	float temp_voltage = 3.3f * PIOS_ADC_PinGet(5) / ((1 << 12) - 1);
+	const float STM32_TEMP_V25 = 0.76f; /* V */
+	const float STM32_TEMP_AVG_SLOPE = 2.5f; /* mV/C */
+	stats.CPUTemp = (temp_voltage-STM32_TEMP_V25) * 1000.0f / STM32_TEMP_AVG_SLOPE + 25.0f;
+#else
+	float temp_voltage = 3.3f * PIOS_ADC_PinGet(0) / ((1 << 12) - 1);
+	const float STM32_TEMP_V25 = 1.43f; /* V */
+	const float STM32_TEMP_AVG_SLOPE = 4.3f; /* mV/C */
+	stats.CPUTemp = (temp_voltage-STM32_TEMP_V25) * 1000.0f / STM32_TEMP_AVG_SLOPE + 25.0f;
+#endif
 #endif
 	SystemStatsSet(&stats);
 }

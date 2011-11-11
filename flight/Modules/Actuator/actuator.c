@@ -160,7 +160,7 @@ static void actuatorTask(void* parameters)
 	uint16_t ChannelUpdateFreq[ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM];
 	ActuatorSettingsChannelUpdateFreqGet(ChannelUpdateFreq);
 	// TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#ifndef PX2FMU
 	PIOS_Servo_SetHz(&ChannelUpdateFreq[0], ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM);
 #endif
 
@@ -546,7 +546,7 @@ static void actuator_update_rate(UAVObjEvent * ev)
 	if ( ev->obj == ActuatorSettingsHandle() ) {
 		ActuatorSettingsChannelUpdateFreqGet(ChannelUpdateFreq);
 // TODO XXX Replace this with a real OP-wide define switch for enabling / disabling servo out
-#ifndef STM32F2XX
+#ifndef PX2FMU
 		PIOS_Servo_SetHz(&ChannelUpdateFreq[0], ACTUATORSETTINGS_CHANNELUPDATEFREQ_NUMELEM);
 #endif
 	}
@@ -558,7 +558,6 @@ static bool set_channel(uint8_t mixer_channel, uint16_t value) {
 }
 #else
 static bool set_channel(uint8_t mixer_channel, uint16_t value) {
-
 	ActuatorSettingsData settings;
 	ActuatorSettingsGet(&settings);
 

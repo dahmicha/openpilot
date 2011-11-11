@@ -39,6 +39,9 @@ struct pios_servo_channel {
 	GPIO_TypeDef * port;
 	uint8_t channel;
 	uint16_t pin;
+#if defined(STM32F2XX) || defined(STM32F4XX)
+	uint16_t pin_source;
+#endif
 };
 
 struct pios_servo_cfg {
@@ -49,7 +52,6 @@ struct pios_servo_cfg {
 	const struct pios_servo_channel *const channels;
 	uint8_t num_channels;
 };
-
 
 extern const struct pios_servo_cfg pios_servo_cfg;
 

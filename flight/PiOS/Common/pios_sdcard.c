@@ -427,7 +427,7 @@ int32_t PIOS_SDCARD_SectorRead(uint32_t sector, uint8_t * buffer)
 
 	/* Init SPI port for fast frequency access (ca. 18 MBit/s) */
 	/* this is required for the case that the SPI port is shared with other devices */
-	PIOS_SPI_SetClockSpeed(PIOS_SDCARD_SPI, PIOS_SPI_PRESCALER_256);
+	PIOS_SPI_SetClockSpeed(PIOS_SDCARD_SPI, PIOS_SPI_PRESCALER_4);
 
 	if ((status = PIOS_SDCARD_SendSDCCmd(SDCMD_READ_SINGLE_BLOCK, sector, SDCMD_READ_SINGLE_BLOCK_CRC))) {
 		status = (status < 0) ? -256 : status;	/* return timeout indicator or error flags */

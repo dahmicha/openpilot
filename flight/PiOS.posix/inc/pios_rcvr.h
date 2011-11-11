@@ -41,6 +41,7 @@ extern struct pios_rcvr_channel_map pios_rcvr_channel_to_id_map[];
 struct pios_rcvr_driver {
   void    (*init)(uint32_t id);
   int32_t (*read)(uint32_t id, uint8_t channel);
+  int32_t (*rssi)(uint32_t id); /* Receive signal strength: 0: signal loss, > 0: signal. 255: maximum signal quality */
 };
 
 /* Public Functions */

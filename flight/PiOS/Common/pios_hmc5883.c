@@ -62,7 +62,7 @@ void PIOS_HMC5883_Init(void)
 	EXTI_InitTypeDef EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-#ifdef STM32F2XX
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	/* Configure EOC pin as input floating */
 	GPIO_InitStructure.GPIO_Pin = PIOS_HMC5883_DRDY_GPIO_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;

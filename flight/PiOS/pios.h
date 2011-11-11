@@ -47,21 +47,26 @@
 #include <math.h>
 
 /* STM32 Std Perf Lib */
+#if defined(STM32F4XX)
+# include <stm32f4xx.h>
+#endif
 #if defined(STM32F2XX)
-#include <stm32f2xx.h>
-// XXX probably don't need this (header above gets it)
-#include <stm32f2xx_conf.h>
-#else
-#include <stm32f10x.h>
-#include <stm32f10x_conf.h>
+# include <stm32f2xx.h>
+#endif
+
+#if !defined(STM32F2XX) && !defined(STM32F4XX)
+# include <stm32f10x.h>
+# include <stm32f10x_conf.h>
 #endif
 
 #if defined(PIOS_INCLUDE_SDCARD)
 /* Dosfs Includes */
 #include <dosfs.h>
 
+# if defined(PIOS_INCLUDE_USB)
 /* Mass Storage Device Includes */
-#include <msd.h>
+#  include <msd.h>
+# endif
 #endif
 
 

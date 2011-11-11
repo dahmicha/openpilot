@@ -24,62 +24,213 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <QDebug>
 #include "uavobjectgeneratormavlink.h"
 
 using namespace std;
+
+#define MAVLINK_FILE_NAME "mavlinkadapter"
 
 bool UAVObjectGeneratorMAVLink::generate(UAVObjectParser* parser,QString templatepath,QString outputpath) {
 
     fieldTypeStrC << "int8_t" << "int16_t" << "int32_t" <<"uint8_t"
             <<"uint16_t" << "uint32_t" << "float" << "uint8_t";
 
-    QString flightObjInit,objInc,objFileNames,objNames;
+    globalParamIndex = 0;
+
+    QString flightObjHeaders, flightObjAdapterHeaders, objFileNames;//, objNames;
+
+    // Index function calls
+    QString getParamIndexByNameLines, getParamByIndexLines, setParamByIndexLines, getParamNameByIndexLines,
+            getParamCountLines, getParamByNameLines, setParamByNameLines, writeParametersToStorageLines,
+            readParametersFromStorage;
+
     flightCodePath = QDir( templatepath + QString("flight/UAVObjects"));
     flightOutputPath = QDir( outputpath + QString("flight") );
     flightOutputPath.mkpath(flightOutputPath.absolutePath());
 
-    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+    flightListIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinksettingslisttemplate.h") );
+    flightListCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinksettingslisttemplate.c") );
     flightIncludeTemplate = readFile( flightCodePath.absoluteFilePath("inc/uavobjectmavlinktemplate.h") );
-    //flightInitTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectsinittemplate.c") );
-    //flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("Makefiletemplate.inc") );
+    flightCodeTemplate = readFile( flightCodePath.absoluteFilePath("uavobjectmavlinktemplate.c") );
+    flightMakeTemplate = readFile( flightCodePath.absoluteFilePath("MAVLinkMakefiletemplate.inc") );
 
-    if ( flightCodeTemplate.isNull() || flightIncludeTemplate.isNull()) {
+    if ( flightListCodeTemplate.isNull() || flightListIncludeTemplate.isNull() || flightIncludeTemplate.isNull()) {
             cerr << "Error: Could not open flight template files." << endl;
             return false;
         }
 
     for (int objidx = 0; objidx < parser->getNumObjects(); ++objidx) {
         ObjectInfo* info=parser->getObjectByIndex(objidx);
-        process_object(info);
-//        flightObjInit.append("#ifdef UAVOBJ_INIT_" + info->namelc +"\r\n");
-//        flightObjInit.append("    " + info->name + "Initialize();\r\n");
-//        flightObjInit.append("#endif\r\n");
-//        objInc.append("#include \"" + info->namelc + ".h\"\r\n");
-//	objFileNames.append(" " + info->namelc);
-//	objNames.append(" " + info->name);
+        if (info->isSettings)
+        {
+            bool result = process_object(info);
+            if (!result) return false;
+
+            flightObjHeaders.append(QString("#include \"%1.h\"\n").arg(info->namelc));
+            flightObjAdapterHeaders.append(QString("#include \"%1.h\"\n").arg(info->namelc + MAVLINK_FILE_NAME));
+            getParamIndexByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamIndexByName(name); \n\tif (ret != -1) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            // .append(QString("").arg(info->name));
+            setParamByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamNameByIndexLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = (char*)get%1ParamNameByIndex(index);\n\tif (ret != 0) return ret;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            getParamCountLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tcount += get%1ParamCount();\n#endif\n").arg(info->name).arg(info->namelc));
+            getParamByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = get%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n\t#endif\n").arg(info->name).arg(info->namelc));
+            setParamByNameLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\tret = set%1ParamByIndex(index, param);\n\tif (ret == MAVLINK_RET_VAL_PARAM_SUCCESS) return ret; // Else continue with other sub-sections\n\t#endif\n").arg(info->name).arg(info->namelc));
+            writeParametersToStorageLines.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\thandle = %1Handle();\n\tres = UAVObjSave(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_WRITE_ERROR;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            readParametersFromStorage.append(QString("\t#ifdef UAVOBJMAVLINKADAPTER_ENABLE_%2mavlinkadapter\n\thandle = %1Handle();\n\tres = UAVObjLoad(handle, 0);\n\tif (res != 0) success = MAVLINK_RET_VAL_PARAM_READ_ERROR;\n\t#endif\n").arg(info->name).arg(info->namelc));
+            objFileNames.append(" " + info->namelc + MAVLINK_FILE_NAME);
+        }
+
     }
 
-//    // Write the flight object inialization files
-//    flightInitTemplate.replace( QString("$(OBJINC)"), objInc);
-//    flightInitTemplate.replace( QString("$(OBJINIT)"), flightObjInit);
-//    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectsinit.c",
-//                     flightInitTemplate );
-//    if (!res) {
-//        cout << "Error: Could not write flight object init files" << endl;
-//        return false;
-//    }
+    // Write main adapter code file
+    flightListCodeTemplate.replace( QString("$(SETTINGSHEADERS)"), flightObjHeaders);
+    flightListCodeTemplate.replace( QString("$(ADAPTERHEADERS)"), flightObjAdapterHeaders);
 
-//    // Write the flight object Makefile
-//    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
-//    flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
-//    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/Makefile.inc",
-//                     flightMakeTemplate );
-//    if (!res) {
-//        cout << "Error: Could not write flight Makefile" << endl;
-//        return false;
-//    }
+    flightListCodeTemplate.replace( QString("$(GETPARAMINDEXBYNAMELINES)"), getParamIndexByNameLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMBYINDEXLINES)"), getParamByIndexLines);
+    flightListCodeTemplate.replace( QString("$(SETPARAMBYINDEXLINES)"), setParamByIndexLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMNAMEBYINDEXLINES)"), getParamNameByIndexLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMCOUNTLINES)"), getParamCountLines);
+    flightListCodeTemplate.replace( QString("$(GETPARAMBYNAMELINES)"), getParamByNameLines);
+    flightListCodeTemplate.replace( QString("$(SETPARAMBYNAMELINES)"), setParamByNameLines);
+    flightListCodeTemplate.replace( QString("$(WRITEPARAMETERSTOSTORAGELINES)"), writeParametersToStorageLines);
+    flightListCodeTemplate.replace( QString("$(READPARAMETERSFROMSTORAGELINES)"), readParametersFromStorage);
+
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectmavlinksettings.c",
+                                    flightListCodeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight adapter code file" << endl;
+        return false;
+    }
+
+    writeFileIfDiffrent( flightOutputPath.absolutePath() + "/uavobjectmavlinksettings.h",
+                         flightListIncludeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight adapter header file" << endl;
+        return false;
+    }
+
+    // Write the flight object Makefile
+    flightMakeTemplate.replace( QString("$(UAVOBJFILENAMES)"), objFileNames);
+    //flightMakeTemplate.replace( QString("$(UAVOBJNAMES)"), objNames);
+    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/MAVLinkMakefile.inc",
+                     flightMakeTemplate );
+    if (!res) {
+        cout << "Error: Could not write flight Makefile" << endl;
+        return false;
+    }
 
     return true; // if we come here everything should be fine
+}
+
+
+QString compactName(const QString& input)
+{
+    QString name;
+
+    name = input.toLower();
+
+    const int sizeLimit = 1;
+
+    name.replace("settings", "");
+
+    // Replace known words with abbreviations
+    if (name.length() > sizeLimit)
+    {
+        name.replace("gyroscope", "gyro");
+        name.replace("accelerometer", "acc");
+        name.replace("accel", "acc");
+        name.replace("magnetometer", "mag");
+        name.replace("distance", "dist");
+        name.replace("ailerons", "ail");
+        name.replace("altitude", "alt");
+        name.replace("waypoint", "wp");
+        name.replace("throttle", "thr");
+        name.replace("elevator", "elev");
+        name.replace("rudder", "rud");
+        name.replace("error", "err");
+        name.replace("version", "ver");
+        name.replace("message", "msg");
+        name.replace("count", "cnt");
+        name.replace("value", "val");
+        name.replace("source", "src");
+        name.replace("index", "idx");
+        name.replace("type", "typ");
+        name.replace("mode", "mod");
+        name.replace("battery", "bat");
+        name.replace("voltage", "V");
+        name.replace("sensor", "sens");
+        name.replace("flight", "");
+        name.replace("threshold", "thre");
+        name.replace("calibrations", "cal");
+        name.replace("calibration", "cal");
+        name.replace("capacity", "cap");
+        name.replace("location", "loc");
+        name.replace("attitude", "att");
+        name.replace("camera", "cam");
+        name.replace("guidance", "guid");
+        name.replace("stabilization", "stab");
+        name.replace("vector", "vect");
+        name.replace("vertical", "vert");
+        name.replace("horizontal", "horz");
+        name.replace("rotation", "rot");
+        name.replace("mixer", "mix");
+        name.replace("maximum", "max");
+        name.replace("manual", "man");
+        name.replace("control", "ctrl");
+        name.replace("channel", "ch");
+        name.replace("roll", "r");
+        name.replace("pitch", "p");
+        name.replace("yaw", "y");
+        name.replace("thrust", "t");
+        name.replace("curve", "crv");
+        name.replace("actuator", "act");
+        name.replace("rate", "rat");
+        name.replace("optional", "opt");
+        name.replace("module", "mod");
+        name.replace("input", "in");
+        name.replace("range", "R");
+        name.replace("update", "upd");
+        name.replace("limit", "lim");
+        name.replace("accessory", "acces");
+        name.replace("position", "pos");
+        name.replace("neutral", "neut");
+        name.replace("latitude", "lat");
+        name.replace("longitude", "lon");
+        name.replace("leveling", "lev");
+        name.replace("output", "out");
+        name.replace("armed", "arm");
+        name.replace("timeout", "tout");
+        name.replace("integral", "int");
+        name.replace("warning", "warn");
+        name.replace("alarm", "alrm");
+        name.replace("factor", "fact");
+        name.replace("corrected", "corr");
+        name.replace("current", "curr");
+        name.replace("config", "cfg");
+        name.replace("system", "sys");
+
+        // Catch a few particular inputs
+        name.replace("mix_mix", "mix_m");
+        name.replace("ahrscal", "cal");
+        name.replace("guid", "g");
+        name.replace("tempcompfact", "tcompf");
+
+    }
+
+//    // Check if sub-part is still exceeding N chars
+//    if (name.length() > sizeLimit)
+//    {
+//        name.replace("a", "");
+//        name.replace("e", "");
+//        name.replace("i", "");
+//        name.replace("o", "");
+//        name.replace("u", "");
+//    }
+
+    return name;
 }
 
 
@@ -90,6 +241,10 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
 {
     if (info == NULL)
         return false;
+
+    // Gracefully ignore objects that are not settings
+    if (!info->isSettings)
+        return true;
 
     // Prepare output strings
     QString outInclude = flightIncludeTemplate;
@@ -102,242 +257,136 @@ bool UAVObjectGeneratorMAVLink::process_object(ObjectInfo* info)
     // Replace the $(DATAFIELDS) tag
     QString type;
     QString fields;
+
+    QString fieldBaseName;
+
+    if (info->compactname.length() != 0) {
+        fieldBaseName = info->compactname+ "_";
+    } else {
+        fieldBaseName = info->name.toLower()+ "_";
+    }
+
+    unsigned int localParamIndex = 0;
+    unsigned int localParamOffset = globalParamIndex;
+    unsigned int localParamCount = 0;
+
+    QString getParamNameByIndexLines, getParamByIndexLines, setParamByIndexLines;
+
     for (int n = 0; n < info->fields.length(); ++n)
     {
         // Determine type
         type = fieldTypeStrC[info->fields[n]->type];
-        // Append field
-        if ( info->fields[n]->numElements > 1 )
+        QString mavlinkType;
+        QString structAccess;
+
+        if (type == "float" || type == "double")
         {
-            fields.append( QString("    %1 %2[%3];\r\n").arg(type)
-                           .arg(info->fields[n]->name).arg(info->fields[n]->numElements) );
+            mavlinkType = "MAVLINK_TYPE_FLOAT";
+            structAccess = "param->param_float";
+        }
+        else if (type == "uint8_t" || type == "uint16_t" || type == "uint32_t")
+        {
+            mavlinkType = "MAVLINK_TYPE_UINT32_T";
+            structAccess = "param->param_uint32";
+        }
+        else if (type == "int8_t" || type == "int16_t" || type == "int32_t")
+        {
+            mavlinkType = "MAVLINK_TYPE_INT32_T";
+            structAccess = "param->param_int32";
         }
         else
         {
-            fields.append( QString("    %1 %2;\r\n").arg(type).arg(info->fields[n]->name) );
+            mavlinkType = "MAVLINK_TYPE_FLOAT";
+            structAccess = "param->param_float";
         }
-    }
-    outInclude.replace(QString("$(DATAFIELDS)"), fields);
 
-    // Replace the $(DATAFIELDINFO) tag
-    QString enums;
-    for (int n = 0; n < info->fields.length(); ++n)
-    {
-        enums.append(QString("// Field %1 information\r\n").arg(info->fields[n]->name));
-        // Only for enum types
-        if (info->fields[n]->type == FIELDTYPE_ENUM)
-        {
-            enums.append(QString("/* Enumeration options for field %1 */\r\n").arg(info->fields[n]->name));
-            enums.append("typedef enum { ");
-            // Go through each option
-            QStringList options = info->fields[n]->options;
-            for (int m = 0; m < options.length(); ++m) {
-                QString s = (m == (options.length()-1)) ? "%1_%2_%3=%4" : "%1_%2_%3=%4, ";
-                enums.append( s
-                                .arg( info->name.toUpper() )
-                                .arg( info->fields[n]->name.toUpper() )
-                                .arg( options[m].toUpper().replace(QRegExp(ENUM_SPECIAL_CHARS), "") )
-                                .arg(m) );
+        QString mavlinkFieldName = QString(info->fields[n]->name);
 
-            }
-            enums.append( QString(" } %1%2Options;\r\n")
-                          .arg( info->name )
-                          .arg( info->fields[n]->name ) );
+        if (info->fields[n]->compactname.length() != 0) {
+            // Take the user-supplied input if any
+            mavlinkFieldName = info->fields[n]->compactname;
         }
-        // Generate element names (only if field has more than one element)
-        if (info->fields[n]->numElements > 1 && !info->fields[n]->defaultElementNames)
+
+        for (int i = 0; i < info->fields[n]->numElements; ++i)
         {
-            enums.append(QString("/* Array element names for field %1 */\r\n").arg(info->fields[n]->name));
-            enums.append("typedef enum { ");
-            // Go through the element names
-            QStringList elemNames = info->fields[n]->elementNames;
-            for (int m = 0; m < elemNames.length(); ++m)
+            localParamCount++;
+            QString fieldName = fieldBaseName;
+            QString objAccess;
+            if (info->fields[n]->numElements > 1)
             {
-                QString s = (m != (elemNames.length()-1)) ? "%1_%2_%3=%4, " : "%1_%2_%3=%4";
-                enums.append( s
-                                .arg( info->name.toUpper() )
-                                .arg( info->fields[n]->name.toUpper() )
-                                .arg( elemNames[m].toUpper() )
-                                .arg(m) );
-
-            }
-            enums.append( QString(" } %1%2Elem;\r\n")
-                          .arg( info->name )
-                          .arg( info->fields[n]->name ) );
-        }
-        // Generate array information
-        if (info->fields[n]->numElements > 1)
-        {
-            enums.append(QString("/* Number of elements for field %1 */\r\n").arg(info->fields[n]->name));
-            enums.append( QString("#define %1_%2_NUMELEM %3\r\n")
-                          .arg( info->name.toUpper() )
-                          .arg( info->fields[n]->name.toUpper() )
-                          .arg( info->fields[n]->numElements ) );
-        }
-    }
-    outInclude.replace(QString("$(DATAFIELDINFO)"), enums);
-
-    // Replace the $(INITFIELDS) tag
-    QString initfields;
-    for (int n = 0; n < info->fields.length(); ++n)
-    {
-        if (!info->fields[n]->defaultValues.isEmpty() )
-        {
-            // For non-array fields
-            if ( info->fields[n]->numElements == 1)
-            {
-                if ( info->fields[n]->type == FIELDTYPE_ENUM )
-                {
-                    initfields.append( QString("\tdata.%1 = %2;\r\n")
-                                .arg( info->fields[n]->name )
-                                .arg( info->fields[n]->options.indexOf( info->fields[n]->defaultValues[0] ) ) );
-                }
-                else if ( info->fields[n]->type == FIELDTYPE_FLOAT32 )
-                {
-                    initfields.append( QString("\tdata.%1 = %2;\r\n")
-                                .arg( info->fields[n]->name )
-                                .arg( info->fields[n]->defaultValues[0].toFloat() ) );
-                }
-                else
-                {
-                    initfields.append( QString("\tdata.%1 = %2;\r\n")
-                                .arg( info->fields[n]->name )
-                                .arg( info->fields[n]->defaultValues[0].toInt() ) );
-                }
+                objAccess = QString("%1[%2]").arg(info->fields[n]->name).arg(i);
+                fieldName = fieldName.toUpper();
+                fieldName += QString("%1_%2").arg(mavlinkFieldName).arg(QString(info->fields[n]->elementNames[i]));
             }
             else
             {
-                // Initialize all fields in the array
-                for (int idx = 0; idx < info->fields[n]->numElements; ++idx)
-                {
-                    if ( info->fields[n]->type == FIELDTYPE_ENUM )
-                    {
-                        initfields.append( QString("\tdata.%1[%2] = %3;\r\n")
-                                    .arg( info->fields[n]->name )
-                                    .arg( idx )
-                                    .arg( info->fields[n]->options.indexOf( info->fields[n]->defaultValues[idx] ) ) );
-                    }
-                    else if ( info->fields[n]->type == FIELDTYPE_FLOAT32 )
-                    {
-                        initfields.append( QString("\tdata.%1[%2] = %3;\r\n")
-                                    .arg( info->fields[n]->name )
-                                    .arg( idx )
-                                    .arg( info->fields[n]->defaultValues[idx].toFloat() ) );
-                    }
-                    else
-                    {
-                        initfields.append( QString("\tdata.%1[%2] = %3;\r\n")
-                                    .arg( info->fields[n]->name )
-                                    .arg( idx )
-                                    .arg( info->fields[n]->defaultValues[idx].toInt() ) );
-                    }
-                }
+                fieldName = fieldName.toUpper();
+                fieldName += mavlinkFieldName;
+                objAccess = info->fields[n]->name;
             }
-        }
-    }
-    outCode.replace(QString("$(INITFIELDS)"), initfields);
 
-    // Replace the $(SETGETFIELDS) tag
-    QString setgetfields;
-    for (int n = 0; n < info->fields.length(); ++n)
-    {
-        //if (!info->fields[n]->defaultValues.isEmpty() )
-        {
-            // For non-array fields
-            if ( info->fields[n]->numElements == 1)
+            // Compress only if not user-supplied
+            if (info->fields[n]->compactname.length() == 0) {
+                fieldName = compactName(fieldName);
+            }
+
+            int fieldNameLengthMaximum = 18;
+
+
+            // Check if the elementnames part should be compressed
+            if (fieldName.length() > fieldNameLengthMaximum && info->fields[n]->compactname.length() != 0 && info->fields[n]->numElements > 1)
             {
+                QStringList parts = fieldName.split("_");
+                parts.replace(2, compactName(parts.at(2)));
+                fieldName = parts.join("_");
+            }
 
-            	/* Set */
-                setgetfields.append( QString("void %2%3Set( %1 *New%3 )\r\n")
-							.arg( fieldTypeStrC[info->fields[n]->type] )
-							.arg( info->name )
-							.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
-							.arg( info->name )
-							.arg( info->fields[n]->name )
-							.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
 
-				/* GET */
-				setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
-							.arg( fieldTypeStrC[info->fields[n]->type] )
-							.arg( info->name )
-							.arg( info->fields[n]->name ));
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), sizeof(%3));\r\n")
-							.arg( info->name )
-							.arg( info->fields[n]->name )
-							.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
-
+            if (fieldName.length() <= fieldNameLengthMaximum)
+            {
+                //qDebug() << "\t" << fieldName << type;
             }
             else
             {
-
-            	/* SET */
-				setgetfields.append( QString("void %2%3Set( %1 *New%3 )\r\n")
-								.arg( fieldTypeStrC[info->fields[n]->type] )
-								.arg( info->name )
-								.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjSetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
-								.arg( info->name )
-								.arg( info->fields[n]->name )
-								.arg( info->fields[n]->numElements )
-								.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
-
-				/* GET */
-				setgetfields.append( QString("void %2%3Get( %1 *New%3 )\r\n")
-								.arg( fieldTypeStrC[info->fields[n]->type] )
-								.arg( info->name )
-								.arg( info->fields[n]->name ) );
-				setgetfields.append( QString("{\r\n") );
-				setgetfields.append( QString("\tUAVObjGetDataField(%1Handle(), (void*)New%2, offsetof( %1Data, %2), %3*sizeof(%4));\r\n")
-								.arg( info->name )
-								.arg( info->fields[n]->name )
-								.arg( info->fields[n]->numElements )
-								.arg( fieldTypeStrC[info->fields[n]->type] ) );
-				setgetfields.append( QString("}\r\n") );
+                cout << endl << "ERROR:\t\tThe field <" << fieldName.toStdString() << "> is " << fieldName.length() << " chars long, but the name limit is " << fieldNameLengthMaximum << " characters." << endl;
+                cout << "\t\tPlease edit in the XML file " << info->filename.toStdString() << " the main <object> tag AND the field <" << info->fields[n]->name.toStdString() << ">" << endl;
+                cout << "\t\tand add to both tags the attribute: compactname=\"<name>\", where <name> is not more than " << fieldNameLengthMaximum << " characters long." << endl << endl;
+                return false;
             }
+
+            getParamNameByIndexLines += QString("\tcase %1:\n\t\treturn \"%2\";\n\tbreak;\n").arg(globalParamIndex).arg(fieldName);
+            getParamByIndexLines +=     QString("	\t\tcase %1:\n\t\t{\n\t\t%2 = settings.%3;\n\t\tparam->type = %4;\n\t\t}\n\t\tbreak;\n").arg(globalParamIndex).arg(structAccess).arg(objAccess).arg(mavlinkType);
+            setParamByIndexLines +=     QString("\t\tcase %1:\n\t\t{\n\t\t\tif (param->type == %2)\n\t\t\t{\n\t\t\t\tsettings.%3 = %4;\n\t\t\t}\n\t\telse\n\t\t{\n\t\t\treturn MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;\n\t\t}\n\t\t}\n\t\tbreak;\n").arg(globalParamIndex).arg(mavlinkType).arg(objAccess).arg(structAccess);
+            globalParamIndex++;
+            localParamIndex++;
         }
     }
-    outCode.replace(QString("$(SETGETFIELDS)"), setgetfields);
 
-    // Replace the $(SETGETFIELDSEXTERN) tag
-     QString setgetfieldsextern;
-     for (int n = 0; n < info->fields.length(); ++n)
-     {
-         //if (!info->fields[n]->defaultValues.isEmpty() )
-         {
+    outCode.replace(QString("$(GLOBALTOTALFIELDOFFSET)"), QString("%1").arg(0));//localParamOffset));
+    //outInclude.replace(QString("$(DATAFIELDS)"), fields);
+    outCode.replace(QString("$(LOCALFIELDCOUNT)"), QString("%1").arg(localParamIndex));
 
-			/* SET */
-			setgetfieldsextern.append( QString("extern void %2%3Set( %1 *New%3 );\r\n")
-					.arg( fieldTypeStrC[info->fields[n]->type] )
-					.arg( info->name )
-					.arg( info->fields[n]->name ) );
+    // Actual lines
+    outCode.replace(QString("$(GETPARAMNAMEBYINDEXLINES)"), getParamNameByIndexLines);
+    outCode.replace(QString("$(GETPARAMBYINDEXLINES)"), getParamByIndexLines);
+    outCode.replace(QString("$(SETPARAMBYINDEXLINES)"), setParamByIndexLines);
 
-			/* GET */
-			setgetfieldsextern.append( QString("extern void %2%3Get( %1 *New%3 );\r\n")
-					.arg( fieldTypeStrC[info->fields[n]->type] )
-					.arg( info->name )
-					.arg( info->fields[n]->name ) );
-         }
-     }
-     outInclude.replace(QString("$(SETGETFIELDSEXTERN)"), setgetfieldsextern);
+    outCode.replace(QString("$(PARAMCOUNT)"), QString("%1").arg(localParamCount));
 
     // Write the flight code
-    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".c", outCode );
+    bool res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".c", outCode );
     if (!res) {
         cout << "Error: Could not write flight code files" << endl;
         return false;
     }
 
-    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + ".h", outInclude );
+    res = writeFileIfDiffrent( flightOutputPath.absolutePath() + "/" + info->namelc + MAVLINK_FILE_NAME + ".h", outInclude );
+
     if (!res) {
         cout << "Error: Could not write flight include files" << endl;
         return false;
+    } else {
+        //cout << "SUCCESS:\tWrote file: " << flightOutputPath.absolutePath().toStdString() + "/" + info->namelc.toStdString() + MAVLINK_FILE_NAME + ".h" << endl;
     }
 
     return true;

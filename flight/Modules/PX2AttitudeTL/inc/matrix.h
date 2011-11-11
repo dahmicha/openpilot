@@ -7,7 +7,6 @@
 
 #ifndef MATRIX_H_
 #define MATRIX_H_
-#include "mavlink_debug.h"
 
 typedef float m_elem;
 
@@ -61,7 +60,7 @@ static inline void matrix_add(const matrix_t a, const matrix_t b, matrix_t c)
 	if (a.rows != c.rows || a.cols != c.cols || b.rows != c.rows || b.cols
 			!= c.cols)
 	{
-		debug_message_buffer("matrix_add: Dimension mismatch");
+		//debug_message_buffer("matrix_add: Dimension mismatch");
 	}
 	for (int i = 0; i < c.rows; i++)
 	{
@@ -78,7 +77,7 @@ static inline void matrix_sub(const matrix_t a, const matrix_t b, matrix_t c)
 	if (a.rows != c.rows || a.cols != c.cols || b.rows != c.rows || b.cols
 			!= c.cols)
 	{
-		debug_message_buffer("matrix_sub: Dimension mismatch");
+		//debug_message_buffer("matrix_sub: Dimension mismatch");
 	}
 	for (int i = 0; i < c.rows; i++)
 	{
@@ -94,7 +93,7 @@ static inline void matrix_mult(const matrix_t a, const matrix_t b, matrix_t c)
 {
 	if (a.rows != c.rows || b.cols != c.cols || a.cols != b.rows)
 	{
-		debug_message_buffer("matrix_mult: Dimension mismatch");
+		//debug_message_buffer("matrix_mult: Dimension mismatch");
 	}
 	for (int i = 0; i < a.rows; i++)
 	{
@@ -115,7 +114,7 @@ static inline void matrix_mult_trans(const matrix_t a, const matrix_t b, matrix_
 
 	if (a.rows != c.rows || b.rows != c.cols || a.cols != b.cols)
 	{
-		debug_message_buffer("matrix_mult: Dimension mismatch");
+		//debug_message_buffer("matrix_mult: Dimension mismatch");
 	}
 	for (int i = 0; i < a.rows; i++)
 	{
@@ -136,7 +135,7 @@ static inline void matrix_mult_scalar(const float f, const matrix_t a, matrix_t 
 {
 	if (a.rows != c.rows || a.cols != c.cols)
 	{
-		debug_message_buffer("matrix_mult_scalar: Dimension mismatch");
+		//debug_message_buffer("matrix_mult_scalar: Dimension mismatch");
 	}
 	for (int i = 0; i < c.rows; i++)
 	{
@@ -154,7 +153,7 @@ static inline void matrix_mult_element(const matrix_t a, const matrix_t b, matri
 	if (a.rows != c.rows || a.cols != c.cols || b.rows != c.rows || b.cols
 			!= c.cols)
 	{
-		debug_message_buffer("matrix_mult_element: Dimension mismatch");
+		//debug_message_buffer("matrix_mult_element: Dimension mismatch");
 	}
 	for (int i = 0; i < c.rows; i++)
 	{

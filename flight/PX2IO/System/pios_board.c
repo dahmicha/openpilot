@@ -260,7 +260,7 @@ void I2C1_ER_IRQHandler() __attribute__((alias ("I2C_SLAVE_ER_IRQ_Handler")));
 static const struct pios_i2c_adapter_cfg i2c_slave_cfg = {
 		.regs	= I2C1,
 		.init = {
-				.I2C_ClockSpeed				= 100000,
+				.I2C_ClockSpeed				= 400000,
 				.I2C_Mode					= I2C_Mode_I2C,
 				.I2C_DutyCycle				= I2C_DutyCycle_2,
 				.I2C_OwnAddress1			= 0x10,

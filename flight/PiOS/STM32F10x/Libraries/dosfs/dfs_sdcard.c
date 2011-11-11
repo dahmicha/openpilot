@@ -104,7 +104,7 @@ uint32_t DFS_ReadSector(uint8_t unit, uint8_t *buffer, uint32_t sector, uint32_t
 
 	/* Forward to PIOS */
 	int32_t status;
-	if((status = PIOS_SDCARD_SectorRead(sector, buffer)) < 0) {
+	if((status = PIOS_SDCARD_SectorRead(sector, buffer)) != 0) {
 		/* Cannot access SD Card */
 		return 3;
 	}

@@ -38,78 +38,129 @@
 
 #include "openpilot.h"
 #include "$(NAMELC).h"
+#include "$(NAMELC)mavlinkadapter.h"
 
-// Private variables
-static UAVObjHandle handle = NULL;
-
-/**
- * Initialize object.
- * \return 0 Success
- * \return -1 Failure to initialize or -2 for already initialized
- */
-int32_t $(NAME)Initialize(void)
+int16_t get$(NAME)ParamIndexByName(const char* name)
 {
-	// Don't set the handle to null if already registered
-	if(UAVObjGetByID($(NAMEUC)_OBJID) != NULL)
-		return -2;
-	
-	// Register object with the object manager
-	handle = UAVObjRegister($(NAMEUC)_OBJID, $(NAMEUC)_NAME, $(NAMEUC)_METANAME, 0,
-			$(NAMEUC)_ISSINGLEINST, $(NAMEUC)_ISSETTINGS, $(NAMEUC)_NUMBYTES, &$(NAME)SetDefaults);
-
-	// Done
-	if (handle != 0)
+	for (int i = 0; i < $(LOCALFIELDCOUNT); ++i)
 	{
-		return 0;
+		bool match = true;
+		const char* storage_name = get$(NAME)ParamNameByIndex(i);
+		for (uint8_t j = 0; j < ONBOARD_PARAM_NAME_LENGTH; ++j)
+		{
+			// Compare
+			if (storage_name[j] != name[j])
+			{
+				match = false;
+			}
+
+			// End matching if null termination is reached
+			if (storage_name[j] == '\0')
+			{
+				break;
+			}
+		}
+		if (match) return i;
+	}
+	return -1;
+}
+
+const char* get$(NAME)ParamNameByIndex(uint16_t index)
+{
+	switch (index)
+	{
+//		case 0:
+//			return "fixedwing_roll1";
+//		case 1:
+//			return "fixedwing_roll2";
+$(GETPARAMNAMEBYINDEXLINES)
+	}
+	return '\0';
+}
+
+uint8_t get$(NAME)ParamByIndex(uint16_t index, mavlink_param_union_t* param)
+{
+	$(NAME)Data settings;
+	$(NAME)Get(&settings);
+	switch ($(GLOBALTOTALFIELDOFFSET) + index)
+	{
+$(GETPARAMBYINDEXLINES)
+//		case 0:
+//		{
+//			param->param_uint32 = settings.FixedWingRoll1;
+//			param->type = MAVLINK_TYPE_UINT32_T;
+//		}
+//			break;
+//		case 1:
+//		{
+//			param->param_uint32 = settings.FixedWingRoll2;
+//			param->type = MAVLINK_TYPE_UINT32_T;
+//		}
+//			break;
+		default:
+		{
+			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
+		}
+			break;
+	}
+	// Not returned in default case, return true
+	return MAVLINK_RET_VAL_PARAM_SUCCESS;
+}
+
+uint8_t set$(NAME)ParamByIndex(uint16_t index, const mavlink_param_union_t* param)
+{
+	$(NAME)Data settings;
+	$(NAME)Get(&settings);
+	switch (index)
+	{
+$(SETPARAMBYINDEXLINES)
+//		case 0:
+//		{
+//			if (param->type == MAVLINK_TYPE_UINT32_T)
+//			{
+//				settings.FixedWingRoll1 = param->param_uint32;
+//			}
+//			else
+//			{
+//				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
+//			}
+//		}
+//			break;
+//		case 1:
+//		{
+//			if (param->type == MAVLINK_TYPE_UINT32_T)
+//			{
+//				settings.FixedWingRoll2 = param->param_uint32;
+//			}
+//			else
+//			{
+//				return MAVLINK_RET_VAL_PARAM_TYPE_MISMATCH;
+//			}
+//		}
+//			break;
+		default:
+		{
+			return MAVLINK_RET_VAL_PARAM_NAME_DOES_NOT_EXIST;
+		}
+			break;
+	}
+
+	// Not returned in default case, try to write (ok == 0) and return result of
+	// write operation
+	if ($(NAME)Set(&settings) == 0)
+	{
+		return MAVLINK_RET_VAL_PARAM_SUCCESS;
 	}
 	else
 	{
-		return -1;
+		return MAVLINK_RET_VAL_PARAM_WRITE_ERROR;
 	}
 }
 
-/**
- * Initialize object fields and metadata with the default values.
- * If a default value is not specified the object fields
- * will be initialized to zero.
- */
-void $(NAME)SetDefaults(UAVObjHandle obj, uint16_t instId)
+inline uint16_t get$(NAME)ParamCount()
 {
-	$(NAME)Data data;
-	UAVObjMetadata metadata;
-
-	// Initialize object fields to their default values
-	UAVObjGetInstanceData(obj, instId, &data);
-	memset(&data, 0, sizeof($(NAME)Data));
-$(INITFIELDS)
-	UAVObjSetInstanceData(obj, instId, &data);
-
-	// Initialize object metadata to their default values
-	metadata.access = $(FLIGHTACCESS);
-	metadata.gcsAccess = $(GCSACCESS);
-	metadata.telemetryAcked = $(FLIGHTTELEM_ACKED);
-	metadata.telemetryUpdateMode = $(FLIGHTTELEM_UPDATEMODE);
-	metadata.telemetryUpdatePeriod = $(FLIGHTTELEM_UPDATEPERIOD);
-	metadata.gcsTelemetryAcked = $(GCSTELEM_ACKED);
-	metadata.gcsTelemetryUpdateMode = $(GCSTELEM_UPDATEMODE);
-	metadata.gcsTelemetryUpdatePeriod = $(GCSTELEM_UPDATEPERIOD);
-	metadata.loggingUpdateMode = $(LOGGING_UPDATEMODE);
-	metadata.loggingUpdatePeriod = $(LOGGING_UPDATEPERIOD);
-	UAVObjSetMetadata(obj, &metadata);
+	return $(PARAMCOUNT);
 }
-
-/**
- * Get object handle
- */
-UAVObjHandle $(NAME)Handle()
-{
-	return handle;
-}
-
-/**
- * Get/Set object Functions
- */
-$(SETGETFIELDS)
 
 /**
  * @}

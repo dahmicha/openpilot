@@ -16,7 +16,7 @@
  *  Private Definitions/Macros
  ****************************************************************************************/
 
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 #define FALSE 0			// not defined by the STM32F2xx headers
 #define TRUE  1
 #endif
@@ -63,7 +63,7 @@
  */
 void PIOS_IAP_Init( void )
 {
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	// clocks are already on at this point
 #else
 	/* Enable CRC clock */
@@ -78,7 +78,7 @@ void PIOS_IAP_Init( void )
 
 	/* Clear Tamper pin Event(TE) pending flag */
 	// XXX is this really relevant?
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	RTC_ClearFlag(RTC_FLAG_TAMP1F);
 #else
 	BKP_ClearFlag();
@@ -99,7 +99,7 @@ uint32_t	PIOS_IAP_CheckRequest( void )
 	uint16_t	reg1;
 	uint16_t	reg2;
 
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	reg1 = RTC_ReadBackupRegister( MAGIC_REG_1 );
 	reg2 = RTC_ReadBackupRegister( MAGIC_REG_2 );
 #else
@@ -126,7 +126,7 @@ uint32_t	PIOS_IAP_CheckRequest( void )
  */
 void	PIOS_IAP_SetRequest1(void)
 {
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	RTC_WriteBackupRegister( MAGIC_REG_1, IAP_MAGIC_WORD_1);
 #else
 	BKP_WriteBackupRegister( MAGIC_REG_1, IAP_MAGIC_WORD_1);
@@ -135,7 +135,7 @@ void	PIOS_IAP_SetRequest1(void)
 
 void	PIOS_IAP_SetRequest2(void)
 {
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	RTC_WriteBackupRegister( MAGIC_REG_2, IAP_MAGIC_WORD_2);
 #else
 	BKP_WriteBackupRegister( MAGIC_REG_2, IAP_MAGIC_WORD_2);
@@ -144,7 +144,7 @@ void	PIOS_IAP_SetRequest2(void)
 
 void	PIOS_IAP_ClearRequest(void)
 {
-#if defined(STM32F2XX)
+#if defined(STM32F2XX) || defined(STM32F4XX)
 	RTC_WriteBackupRegister( MAGIC_REG_1, 0);
 	RTC_WriteBackupRegister( MAGIC_REG_2, 0);
 #else

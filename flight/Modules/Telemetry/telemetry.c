@@ -532,6 +532,17 @@ static void updateSettings()
     }
 }
 
+// Dummy function for now, should be filled with life
+void debug_vect(const char* string, const float x, const float y, const float z)
+{
+
+}
+
+void debug_message_buffer(const char* string)
+{
+
+}
+
 /**
   * @}
   * @}

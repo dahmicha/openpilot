@@ -201,7 +201,7 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	    .dma     = {
 	        /* .ahb_clk - not required */
 	        .irq = {
-	            .flags   = (DMA_IT_TCIF5 | DMA_IT_TEIF5 | DMA_IT_HTIF5),
+	            .flags   = (DMA_IT_TCIF0 | DMA_IT_TEIF0 | DMA_IT_HTIF5),
 	            .init    = {
 	                .NVIC_IRQChannel                   = DMA1_Stream0_IRQn,
 	                .NVIC_IRQChannelPreemptionPriority = PIOS_IRQ_PRIO_HIGH,
@@ -212,7 +212,7 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	        .rx = {
 	            .channel = DMA1_Stream0,
 	            .init = {
-	                .DMA_Channel            = DMA_Channel_5,
+	                .DMA_Channel            = DMA_Channel_0,
 	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
 	                /* .DMA_Memory0BaseAddr */
 	                .DMA_DIR                = DMA_DIR_PeripheralToMemory,
@@ -232,9 +232,9 @@ static const struct pios_spi_cfg pios_spi_sdcard_cfg = {
 	            },
 	        },
 	        .tx = {
-	            .channel = DMA1_Stream3,
+	            .channel = DMA1_Stream7,
 	            .init = {
-	                .DMA_Channel            = DMA_Channel_5,
+	                .DMA_Channel            = DMA_Channel_0,
 	                /* .DMA_Memory0BaseAddr */
 	                .DMA_PeripheralBaseAddr = (uint32_t)&(SPI3->DR),
 	                .DMA_DIR                = DMA_DIR_MemoryToPeripheral,
@@ -305,7 +305,7 @@ void PIOS_SPI_sdcard_irq_handler(void)
 }
 #endif
 
-#if defined(PIOS_INCLUDE_BUZZER)
+#if defined(PIOS_INCLUDE_BUZZER) && !defined(PIOS_INCLUDE_SERVO)
 const struct pios_buzzer_cfg pios_buzzer_cfg = {
 	.tim_base_init = {
 		.TIM_Prescaler = ((PIOS_MASTER_CLOCK /2) / 20000000) - 1,	// TIM5 Frequency is 20 MHz
@@ -388,9 +388,9 @@ struct pios_adc_dev pios_adc_devs[] = {
 uint8_t pios_adc_num_devices = NELEMENTS(pios_adc_devs);
 
 /*
- * Telemetry USART
+ * TELEMETRY1 USART
  */
-const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_BAUDRATE);
+const struct pios_usart_cfg pios_usart_telem_cfg = USART1_CONFIG(PIOS_COM_TELEM_BAUDRATE);
 
 /*
  * GPS USART
@@ -398,12 +398,12 @@ const struct pios_usart_cfg pios_usart_telem_cfg = USART2_CONFIG(PIOS_COM_TELEM_
 const struct pios_usart_cfg pios_usart_gps_cfg = USART6_CONFIG(PIOS_COM_GPS_BAUDRATE);
 
 /*
- * AUX USART
+ * TELEMETRY2 / AUX USART
  */
-const struct pios_usart_cfg pios_usart_aux_cfg = USART1_CONFIG(PIOS_COM_AUX_BAUDRATE);
+const struct pios_usart_cfg pios_usart_aux_cfg = USART2_CONFIG(PIOS_COM_AUX_BAUDRATE);
 
 /*
- * Control USART
+ * TELEMETRY3 / CONTROL USART
  */
 const struct pios_usart_cfg pios_usart_control_cfg = UART5_CONFIG(PIOS_COM_CONTROL_BAUDRATE);
 
@@ -456,6 +456,75 @@ void PIOS_TIM1_CC_irq_handler()
 }
 
 #endif //PPM
+
+
+
+// PWM / Servo output
+#ifdef PIOS_INCLUDE_SERVO
+/*
+ * Servo outputs
+ */
+#include <pios_servo_priv.h>
+static const struct pios_servo_channel pios_servo_channels[] = {
+	{
+		.timer = TIM5,
+		.channel = TIM_Channel_1,
+		.pin = GPIO_Pin_0,
+		.pin_source = GPIO_PinSource0,
+		.port = GPIOA,
+	},
+	{
+		.timer = TIM5,
+		.channel = TIM_Channel_2,
+		.pin = GPIO_Pin_1,
+		.pin_source = GPIO_PinSource1,
+		.port = GPIOA,
+	},
+	{
+		.timer = TIM5,
+		.channel = TIM_Channel_3,
+		.pin = GPIO_Pin_2,
+		.pin_source = GPIO_PinSource2,
+		.port = GPIOA,
+	},
+	{
+		.timer = TIM5,
+		.channel = TIM_Channel_4,
+		.pin = GPIO_Pin_3,
+		.pin_source = GPIO_PinSource3,
+		.port = GPIOA,
+	}
+};
+
+const struct pios_servo_cfg pios_servo_cfg = {
+	.tim_base_init = {
+		/* Prescaler will be set in pios_servo.c */
+		.TIM_ClockDivision = TIM_CKD_DIV1,
+		.TIM_CounterMode = TIM_CounterMode_Up,
+		.TIM_Period = ((1000000 / PIOS_SERVO_UPDATE_HZ) - 1),
+		.TIM_RepetitionCounter = 0x0000,
+	},
+	.tim_oc_init = {
+		.TIM_OCMode = TIM_OCMode_PWM1,
+		.TIM_OutputState = TIM_OutputState_Enable,
+		.TIM_OutputNState = TIM_OutputNState_Disable,
+		.TIM_Pulse = PIOS_SERVOS_INITIAL_POSITION,
+		.TIM_OCPolarity = TIM_OCPolarity_High,
+		.TIM_OCNPolarity = TIM_OCPolarity_High,
+		.TIM_OCIdleState = TIM_OCIdleState_Reset,
+		.TIM_OCNIdleState = TIM_OCNIdleState_Reset,
+	},
+	.gpio_init = {
+		.GPIO_Mode = GPIO_Mode_AF,
+		.GPIO_OType = GPIO_OType_PP,
+		.GPIO_PuPd  = GPIO_PuPd_NOPULL,
+		.GPIO_Speed = GPIO_Speed_2MHz,
+	},
+	.remap = GPIO_AF_TIM5,
+	.channels = pios_servo_channels,
+	.num_channels = NELEMENTS(pios_servo_channels),
+};
+#endif
 
 
 
@@ -573,8 +642,12 @@ void PIOS_Board_Init(void)
 	/* Initialise USARTs */
 	usart_init(&pios_com_telem_rf_id, &pios_usart_telem_cfg,   PIOS_COM_TELEM_RF_RX_BUF_LEN, PIOS_COM_TELEM_RF_TX_BUF_LEN);
 	usart_init(&pios_com_gps_id,      &pios_usart_gps_cfg,     PIOS_COM_GPS_RX_BUF_LEN,      PIOS_COM_GPS_TX_BUF_LEN);
+#ifndef PIOS_INCLUDE_SERVO
+	// USART2 and SERVO outputs are on the same four pins
 	usart_init(&pios_com_aux_id,      &pios_usart_aux_cfg,     PIOS_COM_AUX_RX_BUF_LEN,      PIOS_COM_AUX_TX_BUF_LEN);
+#endif
 	usart_init(&pios_com_control_id,  &pios_usart_control_cfg, PIOS_COM_CONTROL_RX_BUF_LEN,  PIOS_COM_CONTROL_TX_BUF_LEN);
+
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "\r\n\r\nFMU starting: USART ");
 
@@ -608,27 +681,26 @@ void PIOS_Board_Init(void)
 
 	/* sdcard init */
 #if defined(PIOS_INCLUDE_SDCARD)
-	if (PIOS_SPI_Init(&pios_spi_sdcard_id, &pios_spi_sdcard_cfg)) {
-		PIOS_DEBUG_Assert(0);
-	}
-	PIOS_SDCARD_Init(pios_spi_sdcard_id);
-
+//	if (PIOS_SPI_Init(&pios_spi_sdcard_id, &pios_spi_sdcard_cfg)) {
+//		PIOS_DEBUG_Assert(0);
+//	}
+//	PIOS_SDCARD_Init(pios_spi_sdcard_id);
+//
 //	FILEINFO file;
-//	static uint8_t buffer[200];
 //	uint32_t res;
 //
 //	res = PIOS_SDCARD_MountFS(0);
-//	sprintf((char *)buffer, "PIOS_SDCARD_MountFS Res: %d\n", (int) res);
-//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "PIOS_SDCARD_MountFS Res: %d\n", (int) res);
 //
 //	res = DFS_OpenFile(&PIOS_SDCARD_VolInfo, (uint8_t *)("test/test.txt"), DFS_READ, PIOS_SDCARD_Sector, &file);
-//	sprintf((char *)buffer, "DFS_OpenFile Res: %u\n", (unsigned int) res);
-//	PIOS_COM_SendString(PIOS_COM_DEBUG, (char *)buffer);
-
-	//	if(!PIOS_FOPEN_READ("test.txt", file))
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "DFS_OpenFile Res: %u\n", (unsigned int) res);
+//
+//	static uint8_t buffer[200];
+//	if(!PIOS_FOPEN_READ("test/test.txt", file))
 //	{
 //		PIOS_SDCARD_ReadLine(&file, buffer, 199);
 //	}
+//	PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "%s\n", (char *)buffer);
 
 #endif
 
@@ -679,8 +751,12 @@ void PIOS_Board_Init(void)
 	PIOS_WDG_Init();
 #endif /* PIOS_INCLUDE_WDG */
 
-#if defined(PIOS_INCLUDE_BUZZER)
+#if defined(PIOS_INCLUDE_BUZZER) && !defined(PIOS_INCLUDE_SERVO)
 	PIOS_Buzzer_Init();
+#endif
+
+#if defined(PIOS_INCLUDE_SERVO)
+	PIOS_Servo_Init();
 #endif
 
 	PIOS_COM_SendString(PIOS_COM_DEBUG, "Hardware init done.\r\n");

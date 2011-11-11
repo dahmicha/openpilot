@@ -25,6 +25,7 @@
  */
 
 #include "uavobjectparser.h"
+#include <QVector>
 
 /**
  * Constructor
@@ -109,6 +110,11 @@ int UAVObjectParser::getNumBytes(int objIndex)
         }
         return numBytes;
     }
+}
+
+bool fieldTypeLessThan(const FieldInfo* f1, const FieldInfo* f2)
+{
+    return f1->numBytes > f2->numBytes;
 }
 
 /**
@@ -201,6 +207,9 @@ QString UAVObjectParser::parseXML(QString& xml, QString& filename)
             childNode = childNode.nextSibling();
         }
 
+        // Sort all fields according to size
+        qStableSort(info->fields.begin(), info->fields.end(), fieldTypeLessThan);
+
         // Make sure that required elements were found
         if ( !accessFound )
             return QString("Object::access element is missing");
@@ -229,6 +238,7 @@ QString UAVObjectParser::parseXML(QString& xml, QString& filename)
     }
 
     all_units.removeDuplicates();
+
     // Done, return null string
     return QString();
 }
@@ -375,6 +385,11 @@ QString UAVObjectParser::processObjectFields(QDomNode& childNode, ObjectInfo* in
 
     field->name = elemAttr.nodeValue();
 
+    // Get compact name attribute if present
+    elemAttr = elemAttributes.namedItem("compactname");
+    if ( !elemAttr.isNull() )
+        field->compactname = elemAttr.nodeValue();
+
 
     // Get units attribute
     elemAttr = elemAttributes.namedItem("units");
@@ -480,6 +495,11 @@ QString UAVObjectParser::processObjectAttributes(QDomNode& node, ObjectInfo* inf
 
     info->name = attr.nodeValue();
     info->namelc = attr.nodeValue().toLower();
+
+    // Get compact name attribute if present
+    attr = attributes.namedItem("compactname");
+    if ( !attr.isNull() )
+        info->compactname = attr.nodeValue();
 
     // Get singleinstance attribute
     attr = attributes.namedItem("singleinstance");

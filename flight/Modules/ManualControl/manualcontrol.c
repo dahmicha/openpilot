@@ -55,7 +55,7 @@
 #define UPDATE_PERIOD_MS 20
 #define THROTTLE_FAILSAFE -0.1
 #define FLIGHT_MODE_LIMIT 1.0/3.0
-#define ARMED_TIME_MS      1000
+#define ARMED_TIME_MS      500
 #define ARMED_THRESHOLD    0.50
 //safe band to allow a bit of calibration error or trim offset (in microseconds)
 #define CONNECTION_OFFSET 150
@@ -173,11 +173,21 @@ static void manualControlTask(void *parameters)
 
 		if (!ManualControlCommandReadOnly(&cmd)) {
 
+#ifdef PX2FMU
+			bool valid_input_detected = false;
+#else
+			bool valid_input_detected = true;
+#endif
+
 			// Read channel values in us
 			for (int n = 0; n < MANUALCONTROLCOMMAND_CHANNEL_NUMELEM; ++n) {
 				if (pios_rcvr_channel_to_id_map[n].id) {
 					cmd.Channel[n] = PIOS_RCVR_Read(pios_rcvr_channel_to_id_map[n].id,
-									pios_rcvr_channel_to_id_map[n].channel);
+							pios_rcvr_channel_to_id_map[n].channel);
+#ifdef PX2FMU
+					// Check if RSSI is greater than zero
+					valid_input_detected |= (PIOS_RCVR_GetRSSI(pios_rcvr_channel_to_id_map[n].id) > 0);
+#endif
 				} else {
 					cmd.Channel[n] = -1;
 				}
@@ -197,10 +207,20 @@ static void manualControlTask(void *parameters)
 			}
 
 			// decide if we have valid manual input or not
-			bool valid_input_detected = validInputRange(settings.ChannelMin[settings.Throttle], settings.ChannelMax[settings.Throttle], cmd.Channel[settings.Throttle]) &&
+			valid_input_detected &= validInputRange(settings.ChannelMin[settings.Throttle], settings.ChannelMax[settings.Throttle], cmd.Channel[settings.Throttle]) &&
 			     validInputRange(settings.ChannelMin[settings.Roll], settings.ChannelMax[settings.Roll], cmd.Channel[settings.Roll]) &&
 			     validInputRange(settings.ChannelMin[settings.Yaw], settings.ChannelMax[settings.Yaw], cmd.Channel[settings.Yaw]) &&
 			     validInputRange(settings.ChannelMin[settings.Pitch], settings.ChannelMax[settings.Pitch], cmd.Channel[settings.Pitch]);
+
+
+
+//			static uint8_t rc_debug = 0;
+//			if (rc_debug == 10)
+//			{
+//				PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "rc: ok:%d 1:%d-2:%d-3:%d-4:%d\r\n", (int)valid_input_detected, (int)(100*scaledChannel[0]), (int)(100*scaledChannel[1]), (int)(100*scaledChannel[2]), (int)(100*scaledChannel[3]));
+//				rc_debug = 0;
+//			}
+//			rc_debug++;
 
 			// Implement hysteresis loop on connection status
 			if (valid_input_detected && (++connected_count > 10)) {
@@ -408,7 +428,7 @@ static bool okToArm(void)
 	{
 		if (alarms.Alarm[i] >= SYSTEMALARMS_ALARM_ERROR)
 		{	// found an alarm thats set
-#ifdef STM32F2XX
+#ifdef PX2FMU
 			if (i == SYSTEMALARMS_ALARM_SDCARD)
 				continue;
 #endif

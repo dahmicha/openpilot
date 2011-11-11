@@ -21,9 +21,41 @@
  # with this program; if not, write to the Free Software Foundation, Inc.,
  # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  #####
+ 
+ 
+ 
+ 
+ 
+########################## BEGIN OF USER CONFIGURATION
+ 
+ # Use UAVTALK or MAVLINK
+TELEMETRY_PROTOCOL	?= UAVTALK
+
+# Debugging (YES/NO) ?
+DEBUG ?= YES
+
+# Set to YES when using Code Sourcery toolchain on Windows
+CODE_SOURCERY ?= NO
+ 
+# List of modules to include
+# NOTE: The telemetry module and system module are included automatically
+MODULES	= PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Battery
+ 
+# Deactivated modules: PX2Buzzer
+ 
+########################## END OF USER CONFIGURATION
+ 
+ 
+ 
+ 
+ 
+ 
 
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 TOP      := $(realpath $(WHEREAMI)/../../)
+
+BOARD_NAME	= PX2FMU
+
 include $(TOP)/make/firmware-defs.mk
 include $(TOP)/make/boards/$(BOARD_NAME)/board-info.mk
 
@@ -32,12 +64,6 @@ TARGET := fw_$(BOARD_NAME)
 
 # Directory for output files (lst, obj, dep, elf, sym, map, hex, bin etc.)
 OUTDIR := $(TOP)/build/$(TARGET)
-
-# Debugging (YES/NO) ?
-DEBUG ?= YES
-
-# Set to YES when using Code Sourcery toolchain on Windows
-CODE_SOURCERY ?= NO
 
 # Remove command is different for Code Sourcery on Windows
 ifeq ($(CODE_SOURCERY), YES)
@@ -48,50 +74,49 @@ endif
 
 FLASH_TOOL = OPENOCD
 
-# List of modules to include
-MODULES = PX2AttitudeTL Actuator Stabilization ManualControl Altitude GPS Guidance Battery PX2Buzzer
+# Enable Guidance only once REALLY in use: Guidance
 # Telemetry must be last to grab the optional modules
-#MODULES += MAVLink
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+MODULES += MAVLink
+else
 MODULES += Telemetry
+endif
 PYMODULES = FlightPlan
 #MODULES = PX2Test
 
 # Paths
-OPSYSTEM = ./System
+FLIGHT = $(TOP)/flight
+
+OPSYSTEM = $(WHEREAMI)/System
 OPSYSTEMINC = $(OPSYSTEM)/inc
-OPUAVTALK = ../UAVTalk
-OPUAVTALKINC = $(OPUAVTALK)/inc
-MAVLINK = ../Libraries/mavlink/include
+
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+MAVLINK = $(FLIGHT)/Libraries/mavlink/include
 MAVLINKCOMMON = $(MAVLINK)/common
 MAVLINKMISSIONLIB = $(MAVLINK)/../missionlib
-OPUAVOBJ = ../UAVObjects
+else
+OPUAVTALK = $(FLIGHT)/UAVTalk
+OPUAVTALKINC = $(OPUAVTALK)/inc
+endif
+
+OPUAVOBJ = $(FLIGHT)/UAVObjects
 OPUAVOBJINC = $(OPUAVOBJ)/inc
-OPTESTS  = ./Tests
-OPMODULEDIR = ../Modules
-FLIGHTLIB = ../Libraries
+
+OPTESTS  = $(WHEREAMI)/Tests
+
+OPMODULEDIR = $(FLIGHT)/Modules
+
+FLIGHTLIB = $(FLIGHT)/Libraries
 FLIGHTLIBINC = $(FLIGHTLIB)/inc
-PIOS = ../PiOS
+
+PIOS = $(FLIGHT)/PiOS
 PIOSINC = $(PIOS)/inc
-PIOSSTM32F2XX = $(PIOS)/STM32F2xx
-PIOSSTM32F2XXINC = $(PIOSSTM32F2XX)/inc
-PIOSCOMMON = $(PIOS)/Common
-PIOSCOMMONLIB = $(PIOS)/Common/Libraries
 PIOSBOARDS = $(PIOS)/Boards
-APPLIBDIR = $(PIOSSTM32F2XX)/Libraries
-STMLIBDIR = $(APPLIBDIR)
-STMSPDDIR = $(STMLIBDIR)/STM32F2xx_StdPeriph_Driver
-STMUSBDIR = $(PIOSSTM32F2XX)
-STMSPDSRCDIR = $(STMSPDDIR)/src
-STMSPDINCDIR = $(STMSPDDIR)/inc
-STMUSBSRCDIR = $(STMUSBDEVDIR)/Core/src
-STMUSBINCDIR = $(STMUSBDEVDIR)/Core/inc
-CMSISDIR  = $(STMLIBDIR)/CMSIS/Core/CM3
-DOSFSDIR  = $(APPLIBDIR)/dosfs
-MSDDIR  = $(APPLIBDIR)/msd
-RTOSDIR = $(APPLIBDIR)/FreeRTOS
-RTOSSRCDIR = $(RTOSDIR)/Source
-RTOSINCDIR = $(RTOSSRCDIR)/include
-DOXYGENDIR = ../Doc/Doxygen
+PIOSCOMMON = $(PIOS)/Common
+PIOSCOMMONLIB = $(PIOSCOMMON)/Libraries
+
+DOXYGENDIR = $(FLIGHT)/Doc/Doxygen
+
 PYMITE = $(FLIGHTLIB)/PyMite
 PYMITELIB = $(PYMITE)/lib
 PYMITEPLAT = $(PYMITE)/platform/openpilot
@@ -100,13 +125,48 @@ PYMITEVM = $(PYMITE)/vm
 PYMITEINC = $(PYMITEVM)
 PYMITEINC += $(PYMITEPLAT)
 PYMITEINC += $(OUTDIR)
+
 FLIGHTPLANLIB = $(OPMODULEDIR)/FlightPlan/lib
 FLIGHTPLANS = $(OPMODULEDIR)/FlightPlan/flightplans
 
 UAVOBJSYNTHDIR = $(OUTDIR)/../uavobject-synthetics/flight
 
+# optional component libraries
+include $(PIOSCOMMONLIB)/FreeRTOS/library.mk
+include $(PIOSCOMMONLIB)/dosfs/library.mk
+include $(PIOSCOMMONLIB)/msheap/library.mk
+
+# XXX this should be removed when the PIOS code can be built without being configured
+# or otherwise cherry-picked by the application
+EXTRAINCDIRS +=	$(PIOS) $(PIOS)/inc
+SRC	+=	$(PIOSCOMMON)/pios_bmp085.c \
+		$(PIOSCOMMON)/pios_com.c \
+		$(PIOSCOMMON)/pios_crc.c \
+		$(PIOSCOMMON)/pios_eeprom.c \
+		$(PIOSCOMMON)/pios_flashfs_objlist.c \
+		$(PIOSCOMMON)/pios_hmc5883.c \
+		$(PIOSCOMMON)/pios_i2c_esc.c \
+		$(PIOSCOMMON)/pios_iap.c \
+		$(PIOSCOMMON)/pios_l3g4200.c \
+		$(PIOSCOMMON)/pios_lis331.c \
+		$(PIOSCOMMON)/pios_rcvr.c \
+		$(PIOSCOMMON)/pios_sdcard.c \
+		$(PIOSCOMMON)/printf-stdarg.c
+
+# target support library should come last
+ifneq ($(M4),)
+include $(PIOS)/STM32F4xx/library.mk
+else
+include $(PIOS)/STM32F2xx/library.mk
+endif
+
 # List C source files here. (C dependencies are automatically generated.)
 # use file-extension c for "c-only"-files
+
+# UNCOMMENT THE LINE BELOW TO PERFORM LOAD TESTING, SEE Tests/test_cpuload.c
+#TESTAPP = test_cpuload
+# UNCOMMENT THE LINE BELOW TO PERFORM FPU TESTING, SEE Tests/test_cpuload.c
+#TESTAPP = test_fpu
 
 ifndef TESTAPP
 
@@ -128,16 +188,18 @@ SRC += $(OPSYSTEM)/openpilot.c
 SRC += $(OPSYSTEM)/pios_board.c
 SRC += $(OPSYSTEM)/alarms.c
 SRC += $(OPSYSTEM)/taskmonitor.c
-SRC += $(OPSYSTEM)/mavlink_debug.c
+ifeq ($(TELEMETRY_PROTOCOL), UAVTALK)
 SRC += $(OPUAVTALK)/uavtalk.c
+endif
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c
+
 else
+
 ## TESTCODE
 SRC += $(OPTESTS)/test_common.c
 SRC += $(OPTESTS)/$(TESTAPP).c
 endif
-
 
 #ifeq ($(DEBUG),YES)
 SRC += $(OPSYSTEM)/dcc_stdio.c
@@ -147,97 +209,26 @@ SRC += $(OPSYSTEM)/cm3_fault_handlers.c
 ## UAVOBJECTS
 ifndef TESTAPP
 #include $(UAVOBJSYNTHDIR)/Makefile.inc
-include ./UAVObjects.inc
+include $(WHEREAMI)/UAVObjects.inc
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+include $(WHEREAMI)/UAVObjectsMAVLink.inc
+SRC += $(UAVOBJMAVLINKSRC)
+endif
 SRC += $(UAVOBJSRC)
 endif
 
 ## MAVLINK MISSION LIB
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
 SRC += $(MAVLINKMISSIONLIB)/waypoints.c
-
-## PIOS Hardware (STM32F2xx)
-SRC += $(PIOSSTM32F2XX)/startup.c
-SRC += $(PIOSSTM32F2XX)/vectors_stm32f2xx.c
-SRC += $(PIOSSTM32F2XX)/pios_sys.c
-SRC += $(PIOSSTM32F2XX)/pios_led.c
-SRC += $(PIOSSTM32F2XX)/pios_delay.c
-SRC += $(PIOSSTM32F2XX)/pios_usart.c
-SRC += $(PIOSSTM32F2XX)/pios_irq.c
-SRC += $(PIOSSTM32F2XX)/pios_adc.c
-SRC += $(PIOSSTM32F2XX)/pios_i2c.c
-SRC += $(PIOSSTM32F2XX)/pios_spi.c
-SRC += $(PIOSSTM32F2XX)/pios_ppm.c
-SRC += $(PIOSSTM32F2XX)/pios_debug.c
-SRC += $(PIOSSTM32F2XX)/pios_gpio.c
-SRC += $(PIOSSTM32F2XX)/pios_exti.c
-SRC += $(PIOSSTM32F2XX)/pios_wdg.c
-SRC += $(PIOSSTM32F2XX)/pios_buzzer.c
-
-## PIOS Hardware (Common)
-SRC += $(PIOSCOMMON)/pios_bmp085.c
-SRC += $(PIOSCOMMON)/pios_com.c
-SRC += $(PIOSCOMMON)/pios_crc.c
-SRC += $(PIOSCOMMON)/pios_eeprom.c
-SRC += $(PIOSCOMMON)/pios_flashfs_objlist.c
-SRC += $(PIOSCOMMON)/pios_hmc5883.c
-SRC += $(PIOSCOMMON)/pios_i2c_esc.c
-SRC += $(PIOSCOMMON)/pios_iap.c
-SRC += $(PIOSCOMMON)/pios_l3g4200.c
-SRC += $(PIOSCOMMON)/pios_lis331.c
-SRC += $(PIOSCOMMON)/pios_rcvr.c
-SRC += $(PIOSCOMMON)/pios_sdcard.c
-SRC += $(PIOSCOMMON)/printf-stdarg.c
+endif
 
 ## Libraries for flight calculations
 SRC += $(FLIGHTLIB)/fifo_buffer.c
 SRC += $(FLIGHTLIB)/WorldMagModel.c
 SRC += $(FLIGHTLIB)/CoordinateConversions.c
 
-## CMSIS for STM32
-# XXX  should just link with a .a
-SRC += $(CMSISDIR)/core_cm3.c
-SRC += $(CMSISDIR)/system_stm32f2xx.c
-
-## Used parts of the STM-Library
-# XXX  should just link with a .a
-SRC += $(STMSPDSRCDIR)/stm32f2xx_adc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_crc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_dbgmcu.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_dma.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_exti.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_flash.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_gpio.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_i2c.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_iwdg.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_pwr.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_rcc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_rtc.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_spi.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_syscfg.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_tim.c
-SRC += $(STMSPDSRCDIR)/stm32f2xx_usart.c
-SRC += $(STMSPDSRCDIR)/misc.c
-
-## RTOS
-SRC += $(RTOSSRCDIR)/list.c
-SRC += $(RTOSSRCDIR)/queue.c
-SRC += $(RTOSSRCDIR)/tasks.c
-SRC += $(RTOSSRCDIR)/timers.c
-
-## RTOS Portable
-SRC += $(RTOSSRCDIR)/portable/GCC/ARM_CM3/port.c
-#SRC += $(RTOSSRCDIR)/portable/MemMang/heap_2.c
-
-## Better malloc/free
-SRC += $(PIOSCOMMONLIB)/msheap/msheap.c
-SRC += $(PIOSCOMMONLIB)/msheap/pios_msheap.c
-
-## Dosfs file system
-SRC += $(DOSFSDIR)/dosfs.c
-SRC += $(DOSFSDIR)/dfs_sdcard.c
-
 # List C source files here which must be compiled in ARM-Mode (no -mthumb).
 # use file-extension c for "c-only"-files
-## just for testing, timer.c could be compiled in thumb-mode too
 SRCARM =
 
 # List C++ source files here.
@@ -263,31 +254,21 @@ ASRCARM =
 
 # List any extra directories to look for include files here.
 #    Each directory must be seperated by a space.
-EXTRAINCDIRS  =  $(OPSYSTEM)
+EXTRAINCDIRS  += $(OPSYSTEM)
 EXTRAINCDIRS  += $(OPSYSTEMINC)
-EXTRAINCDIRS  += $(OPUAVTALK)
-EXTRAINCDIRS  += $(OPUAVTALKINC)
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
 EXTRAINCDIRS  += $(MAVLINK)
 EXTRAINCDIRS  += $(MAVLINKCOMMON)
 EXTRAINCDIRS  += $(MAVLINKMISSIONLIB)
+else
+EXTRAINCDIRS  += $(OPUAVTALK)
+EXTRAINCDIRS  += $(OPUAVTALKINC)
+endif
 EXTRAINCDIRS  += $(OPUAVOBJ)
 EXTRAINCDIRS  += $(OPUAVOBJINC)
 EXTRAINCDIRS  += $(UAVOBJSYNTHDIR)
-EXTRAINCDIRS  += $(PIOS)
-EXTRAINCDIRS  += $(PIOSINC)
 EXTRAINCDIRS  += $(FLIGHTLIBINC)
-EXTRAINCDIRS  += $(PIOSSTM32F2XX)
-EXTRAINCDIRS  += $(PIOSSTM32F2XXINC)
-EXTRAINCDIRS  += $(PIOSCOMMON)
 EXTRAINCDIRS  += $(PIOSBOARDS)
-EXTRAINCDIRS  += $(STMSPDINCDIR)
-EXTRAINCDIRS  += $(STMUSBINCDIR)
-EXTRAINCDIRS  += $(CMSISDIR)
-EXTRAINCDIRS  += $(DOSFSDIR)
-EXTRAINCDIRS  += $(MSDDIR)
-EXTRAINCDIRS  += $(RTOSINCDIR)
-EXTRAINCDIRS  += $(APPLIBDIR)
-EXTRAINCDIRS  += $(RTOSSRCDIR)/portable/GCC/ARM_CM3
 EXTRAINCDIRS  += $(PYMITEINC)
 
 EXTRAINCDIRS += ${foreach MOD, ${MODULES} ${PYMODULES}, $(OPMODULEDIR)/${MOD}/inc} ${OPMODULEDIR}/System/inc
@@ -306,9 +287,6 @@ EXTRA_LIBDIRS =
 # for newlib-lpc (file: libnewlibc-lpc.a):
 #    EXTRA_LIBS = newlib-lpc
 EXTRA_LIBS =
-
-# Path to Linker-Scripts
-LINKERSCRIPTPATH = $(PIOSSTM32F2XX)
 
 # Optimization level, can be [0, 1, 2, 3, s].
 # 0 = turn off optimization. s = optimize for size.
@@ -330,14 +308,21 @@ LOADFORMAT = both
 # Debugging format.
 DEBUGF = dwarf-2
 
-# Place project-specific -D (define) and/or
+# Place project-specific 
+# (define) and/or
 # -U options for C here.
-CDEFS = -DSTM32F2XX
 #CDEFS += -DMAVLINK_SEPARATE_HELPERS
+ifeq ($(TELEMETRY_PROTOCOL), MAVLINK)
+CDEFS += -DMAVLINK_ENABLED
 CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
-CDEFS += -D__ARM_ARCH_7M__
-CDEFS += -DHSE_VALUE=$(OSCILLATOR_FREQ)
-CDEFS += -DUSE_STDPERIPH_DRIVER
+CDEFS += -DMAVLINK_CRC_EXTRA
+CDEFS += $(UAVOBJMAVLINKDEFINE)
+else
+CDEFS += -DUAVTALK_ENABLED
+endif
+CDEFS += -DPX2MODE
+CDEFS += -DPX2FMU
+CDEFS += -DSYSCLK_FREQ=$(SYSCLK_FREQ)
 CDEFS += -DUSE_$(BOARD)
 
 # Place project-specific -D and/or -U options for
@@ -357,15 +342,17 @@ CSTANDARD = -std=gnu99
 
 # Flags for C and C++ (arm-elf-gcc/arm-elf-g++)
 ifeq ($(DEBUG),YES)
-CFLAGS = -g$(DEBUGF) -DDEBUG
+CFLAGS += -g$(DEBUGF) -DDEBUG
 CFLAGS += -finstrument-functions -ffixed-r10
 endif
+
+# common architecture-specific flags from the device-specific library makefile
+CFLAGS += $(ARCHFLAGS)
 
 # FMU has enough memory to always enable optional objects
 CFLAGS += -DDIAGNOSTICS
 
 CFLAGS += -O$(OPT)
-CFLAGS += -mcpu=$(MCU)
 CFLAGS += $(CDEFS)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 CFLAGS += -ffunction-sections -fdata-sections
@@ -388,7 +375,7 @@ CONLYFLAGS += $(CSTANDARD)
 # Assembler flags.
 #  -Wa,...:    tell GCC to pass this to the assembler.
 #  -ahlns:     create listing
-ASFLAGS  = -mcpu=$(MCU) -mthumb -I. -x assembler-with-cpp
+ASFLAGS  = $(ARCHFLAGS) -mthumb -I. -x assembler-with-cpp
 ASFLAGS += $(ADEFS)
 ASFLAGS += -Wa,-adhlns=$(addprefix $(OUTDIR)/, $(notdir $(addsuffix .lst, $(basename $<))))
 ASFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
@@ -399,13 +386,13 @@ MATH_LIB = -lm
 #  -Wl,...:     tell GCC to pass this to linker.
 #    -Map:      create map file
 #    --cref:    add cross reference to  map file
-LDFLAGS = -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
+LDFLAGS += -nostartfiles -Wl,-Map=$(OUTDIR)/$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
 LDFLAGS += $(MATH_LIB)
 
-# Hardcoded linker script names for now
-LDFLAGS +=-T$(LINKERSCRIPTPATH)/link_STM32F2xx_OP_memory.ld -T$(LINKERSCRIPTPATH)/link_STM32F2xx_sections.ld
+# Linker scripts
+LDFLAGS += $(addprefix -T,$(LINKER_SCRIPTS_APP))
 
 # Define programs and commands.
 REMOVE  = $(REMOVE_CMD) -f

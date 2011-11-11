@@ -41,7 +41,13 @@
 #include "eventdispatcher.h"
 #include "alarms.h"
 #include "taskmonitor.h"
+#ifdef UAVTALK_ENABLED
 #include "uavtalk.h"
+#endif
+
+#ifdef MAVLINK_ENABLED
+
+#endif
 
 /* Global Functions */
 void OpenPilotInit(void);

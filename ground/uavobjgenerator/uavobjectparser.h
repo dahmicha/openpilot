@@ -49,6 +49,7 @@ typedef enum {
 
 typedef struct {
     QString name;
+    QString compactname;
     QString units;
     FieldType type;
     int numElements;
@@ -79,6 +80,7 @@ typedef enum {
 typedef struct  {
     QString name;
     QString namelc; /** name in lowercase */
+    QString compactname;
     QString filename;
     quint32 id;
     bool isSingleInst;
@@ -130,6 +132,7 @@ private:
     void calculateID(ObjectInfo* info);
     quint32 updateHash(quint32 value, quint32 hash);
     quint32 updateHash(QString& value, quint32 hash);
+    //static bool fieldTypeLessThan(const FieldInfo* f1, const FieldInfo* f2);
 };
 
 #endif // UAVOBJECTPARSER_H

@@ -5,7 +5,7 @@
  *      Author: Laurens Mackay
  */
 #include "kalman.h"
-#include "mavlink_debug.h"
+//#include "mavlink_debug.h"
 
 void kalman_init(kalman_t *kalman, int states, int measurements, m_elem a[],
 		m_elem c[], m_elem gain_start[], m_elem gain[], m_elem x_apriori[],

@@ -62,10 +62,10 @@
 #define PIOS_WDG_ATTITUDE		0x0010
 
 //------------------------
-// TELEMETRY 
+// TELEMETRY
 //------------------------
 #define TELEM_QUEUE_SIZE		20
-#define PIOS_TELEM_STACK_SIZE	624
+#define PIOS_TELEM_STACK_SIZE	1200
 
 //------------------------
 // MAVLINK
@@ -176,6 +176,7 @@ extern uint32_t pios_i2c_external_adapter_id;
 #define PIOS_COM_MAX_DEVS               (PIOS_USART_MAX_DEVS + 1)	// +1 for USB
 
 #define PIOS_COM_TELEM_BAUDRATE         57600
+//#define PIOS_COM_TELEM_BAUDRATE         921600
 extern uint32_t pios_com_telem_rf_id;
 #define PIOS_COM_TELEM_RF               (pios_com_telem_rf_id)
 
@@ -205,8 +206,7 @@ extern uint32_t pios_com_aux_id;
 //-------------------------
 // System Settings
 //-------------------------
-#define PIOS_MASTER_CLOCK				120000000					// XXX should really get this from the BSP
-#define PIOS_PERIPHERAL_CLOCK			(PIOS_MASTER_CLOCK / 2)		// XXX should really get this from the BSP
+#define PIOS_MASTER_CLOCK				SYSCLK_FREQ	// XXX should really get this procedurally
 
 //-------------------------
 // Interrupt Priorities
@@ -235,6 +235,12 @@ extern uint32_t pios_com_aux_id;
 #define PIOS_PPM_TIM_IRQ				TIM1_CC_IRQn
 #define PIOS_PPM_NUM_INPUTS				8  //Could be more if needed
 
+//-------------------------
+// Servo outputs
+//-------------------------
+#define PIOS_SERVO_UPDATE_HZ            50
+#define PIOS_SERVOS_INITIAL_POSITION    0		// default to sending no signal
+
 
 //-------------------------
 // ADC
@@ -242,6 +248,8 @@ extern uint32_t pios_com_aux_id;
 // PIOS_ADC_PinGet(1) = AUX1 (PX2IO external pressure port)
 // PIOS_ADC_PinGet(2) = AUX2 (Current sensor, if available)
 // PIOS_ADC_PinGet(3) = AUX3
+// PIOS_ADC_PinGet(4) = VREF
+// PIOS_ADC_PinGet(5) = Temperature sensor
 //-------------------------
 
 #define PIOS_DMA_PIN_CONFIG												\

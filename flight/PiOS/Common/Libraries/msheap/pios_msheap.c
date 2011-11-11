@@ -122,7 +122,7 @@ malloc(size_t size)
 		heap_init_done = 1;
 	}
 
-	return msheap_alloc(s);
+	return msheap_alloc(size);
 }
 
 void

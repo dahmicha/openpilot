@@ -36,6 +36,12 @@
 #ifndef MAVLINK_TELEMETRY_H
 #define MAVLINK_TELEMETRY_H
 
+#include "mavlink_types.h"
+mavlink_system_t mavlink_system;
+
+#include "mavlink_send_bridge.h"
+#include <mavlink.h>
+
 int32_t MAVLinkInitialize(void);
 
 #endif /* MAVLINK_TELEMETRY_H */

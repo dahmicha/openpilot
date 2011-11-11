@@ -215,6 +215,24 @@ static void AttitudeTask(void *parameters)
 			AlarmsClear(SYSTEMALARMS_ALARM_ATTITUDE);
 		}
 
+		static unsigned int counter = 0;
+		static unsigned int i = 10;
+
+		if (counter == 10)
+		{
+			PIOS_Servo_Set(0, 1000+i);
+			PIOS_Servo_Set(1, 1000+i);
+			PIOS_Servo_Set(2, 1000+i);
+			PIOS_Servo_Set(3, 1000+i);
+			i++;
+			if (i > 1000)
+			{
+				i = 0;
+			}
+			counter = 0;
+		}
+		counter++;
+
 	}
 }
 

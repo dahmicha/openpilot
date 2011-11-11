@@ -72,6 +72,7 @@ static void testTask(void *pvParameters)
 
 		// Calculate counts per second, set breakpoint here
 		countsPerSecond = idleCounter / (BENCHMARK_DURATION_MS/1000);
+		countsPerSecond = countsPerSecond;
 
 		// Reset and start again - do not clear idleCounter directly!
 		// SET BREAKPOINT HERE and read the countsPerSecond variable

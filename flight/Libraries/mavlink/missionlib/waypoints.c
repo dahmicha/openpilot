@@ -23,7 +23,6 @@
 bool debug = true;
 bool verbose = true;
 
-extern mavlink_system_t mavlink_system;
 extern mavlink_wpm_storage wpm;
 
 extern void mavlink_missionlib_send_message(mavlink_message_t* msg);

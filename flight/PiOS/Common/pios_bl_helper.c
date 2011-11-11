@@ -32,11 +32,15 @@
 #include "pios.h"
 #include <pios_board_info.h>
 #if defined(PIOS_INCLUDE_BL_HELPER)
+# if defined(STM32F4XX)
+#  include "stm32f4xx_flash.h"
+# endif
 # if defined(STM32F2XX)
 #  include "stm32f2xx_flash.h"
 #  define FALSE	0
 #  define TRUE	1
-# else
+# endif
+# if !defined(STM32F2XX) && !defined(STM32F4XX)
 #  include "stm32f10x_flash.h"
 # endif
 #endif

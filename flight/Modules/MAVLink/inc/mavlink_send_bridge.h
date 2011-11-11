@@ -19,7 +19,7 @@
  */
 void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t* buffer, uint16_t len);
 
-//#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
+#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
 
 
 #endif /* MAVLINK_SEND_BRIDGE_H_ */

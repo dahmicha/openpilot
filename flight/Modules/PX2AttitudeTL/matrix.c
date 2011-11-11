@@ -5,7 +5,7 @@
  *      Author: Laurens Mackay
  */
 #include "matrix.h"
-#include "mavlink_debug.h"
+//#include "mavlink_debug.h"
 //
 //matrix_t matrix_create(const int rows, const int cols, m_elem * a)
 //{

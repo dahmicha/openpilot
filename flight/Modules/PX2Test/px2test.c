@@ -31,10 +31,11 @@
 
 #include "pios.h"
 #include "actuatorsettings.h"
+#include "../PX2IO/px2io_protocol.h"
 
 static xTaskHandle testTaskHandle;
 
-#define STACK_SIZE_BYTES		540						// XXX re-evaluate
+#define STACK_SIZE_BYTES		2048					// XXX re-evaluate
 #define TEST_TASK_PRIORITY		(tskIDLE_PRIORITY + 3)	// high
 
 static void testTask(void *parameters);
@@ -43,6 +44,7 @@ static void	testGyro(void);
 static void	testMag(void);
 static void	testBaro(void);
 static void	testEEPROM(void);
+static void testPX2IO(void);
 
 #define puts(_s)				PIOS_COM_SendString(PIOS_COM_DEBUG, _s)
 #define putln(_s)				puts(_s "\r\n")
@@ -53,7 +55,7 @@ static void	testEEPROM(void);
  * Initialise the module, called on startup
  * \returns 0 on success or -1 if initialisation failed
  */
-int32_t PX2TestInitialize(void)
+int32_t PX2TestStart(void)
 {
 
 	// Start the test task
@@ -62,12 +64,25 @@ int32_t PX2TestInitialize(void)
 	return 0;
 }
 
+int32_t PX2TestInitialize(void)
+{
+	return 0;
+}
+
+MODULE_INITCALL(PX2TestInitialize, PX2TestStart)
+
+
 /**
  * Module thread, should not return.
  */
 static void testTask(void *parameters)
 {
+	// give the system 5s to stabilise
+	vTaskDelay(5000 * portTICK_RATE_MS);
+
 	putln("PX2 HARDWARE TEST");
+	testPX2IO();
+
 	testAccel();
 	testGyro();
 	testMag();
@@ -294,3 +309,65 @@ testEEPROM(void)
 //	}
 //	putln(" restore OK");
 }
+
+static bool
+px2io_get(struct iop_get *get)
+{
+	struct pios_i2c_txn txn_list[] = {
+			{
+					.info = __func__,
+					.addr = PX2IO_I2C_ADDR >> 1,
+					.rw = PIOS_I2C_TXN_READ,
+					.len = sizeof(*get),
+					.buf = (void *)get
+			}
+	};
+
+	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, 1);
+}
+
+static bool
+px2io_set(struct iop_set *set)
+{
+	struct pios_i2c_txn txn_list[] = {
+			{
+					.info = __func__,
+					.addr = PX2IO_I2C_ADDR >> 1,
+					.rw = PIOS_I2C_TXN_WRITE,
+					.len = sizeof(*set),
+					.buf = (void *)set
+			}
+	};
+
+	return PIOS_I2C_Transfer(PIOS_I2C_MAIN_ADAPTER, txn_list, 1);
+}
+
+static void
+testPX2IO(void)
+{
+	struct iop_get	get;
+	struct iop_set	set;
+
+	puts("PX2IO...");
+	memset(&set, 0, sizeof(set));
+	puts("set ");
+	if (!px2io_set(&set)) {
+		puts("FAIL ");
+	} else {
+		puts("OK ");
+	}
+
+	puts("get ");
+	if (!px2io_get(&get)) {
+		puts("FAIL ");
+	} else {
+		puts("OK ");
+	}
+	putln("done");
+
+	for (;;)
+		/*px2io_get(&get)*/;
+
+
+}
+

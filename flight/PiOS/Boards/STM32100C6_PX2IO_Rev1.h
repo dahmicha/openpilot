@@ -199,25 +199,25 @@ extern uint32_t pios_com_spektrum_id;
 //-------------------------
 // GPIO
 //-------------------------
-#define PIOS_GPIO_1_PORT				GPIOA					// Relay 1
-#define PIOS_GPIO_1_PIN					GPIO_Pin_12
+#define PIOS_GPIO_0_PORT				GPIOA					// Relay 1
+#define PIOS_GPIO_0_PIN					GPIO_Pin_12
+#define PIOS_GPIO_0_GPIO_CLK			RCC_APB2Periph_GPIOA
+
+#define PIOS_GPIO_1_PORT				GPIOA					// Relay 2
+#define PIOS_GPIO_1_PIN					GPIO_Pin_11
 #define PIOS_GPIO_1_GPIO_CLK			RCC_APB2Periph_GPIOA
 
-#define PIOS_GPIO_2_PORT				GPIOA					// Relay 2
-#define PIOS_GPIO_2_PIN					GPIO_Pin_11
-#define PIOS_GPIO_2_GPIO_CLK			RCC_APB2Periph_GPIOA
+#define PIOS_GPIO_2_PORT				GPIOC					// Accessory 1
+#define PIOS_GPIO_2_PIN					GPIO_Pin_13
+#define PIOS_GPIO_2_GPIO_CLK			RCC_APB2Periph_GPIOC
 
-#define PIOS_GPIO_3_PORT				GPIOC					// Accessory 1
-#define PIOS_GPIO_3_PIN					GPIO_Pin_13
+#define PIOS_GPIO_3_PORT				GPIOC					// Accessory 2
+#define PIOS_GPIO_3_PIN					GPIO_Pin_14
 #define PIOS_GPIO_3_GPIO_CLK			RCC_APB2Periph_GPIOC
 
-#define PIOS_GPIO_4_PORT				GPIOC					// Accessory 2
-#define PIOS_GPIO_4_PIN					GPIO_Pin_14
-#define PIOS_GPIO_4_GPIO_CLK			RCC_APB2Periph_GPIOC
-
-#define PIOS_GPIO_PORTS					{ PIOS_GPIO_1_PORT,     PIOS_GPIO_2_PORT,     PIOS_GPIO_3_PORT,     PIOS_GPIO_4_PORT }
-#define PIOS_GPIO_PINS					{ PIOS_GPIO_1_PIN,      PIOS_GPIO_2_PIN,      PIOS_GPIO_3_PIN,      PIOS_GPIO_4_PIN}
-#define PIOS_GPIO_CLKS					{ PIOS_GPIO_1_GPIO_CLK, PIOS_GPIO_2_GPIO_CLK, PIOS_GPIO_3_GPIO_CLK, PIOS_GPIO_4_GPIO_CLK, }
+#define PIOS_GPIO_PORTS					{ PIOS_GPIO_0_PORT,     PIOS_GPIO_1_PORT,     PIOS_GPIO_2_PORT,     PIOS_GPIO_3_PORT }
+#define PIOS_GPIO_PINS					{ PIOS_GPIO_0_PIN,      PIOS_GPIO_1_PIN,      PIOS_GPIO_2_PIN,      PIOS_GPIO_3_PIN}
+#define PIOS_GPIO_CLKS					{ PIOS_GPIO_0_GPIO_CLK, PIOS_GPIO_1_GPIO_CLK, PIOS_GPIO_2_GPIO_CLK, PIOS_GPIO_3_GPIO_CLK, }
 #define PIOS_GPIO_NUM					4
 
 #define GPIO_PORT_SafetySwitch			GPIOB

@@ -31,6 +31,7 @@
  */
 
 #include "openpilot.h"
+#include <stdbool.h>
 #include "mavlink_telemetry.h"
 #include "flighttelemetrystats.h"
 #include "gcstelemetrystats.h"
@@ -106,12 +107,13 @@ static void updateSettings();
 /** \brief Enable hardware in the loop simulation */
 static bool enableHil(bool enable);
 
-#include "mavlink_types.h"
-mavlink_system_t mavlink_system;
+//#include "mavlink_types.h"
+//mavlink_system_t mavlink_system;
 uint16_t next_param = 0;
 
-#include "mavlink_send_bridge.h"
+//#include "mavlink_send_bridge.h"
 #include "mavlink_debug.h"
+#include "mavlink_parameters_openpilot.h"
 
 /* Struct that stores the communication settings of this system.
    you can also define / alter these settings elsewhere, as long
@@ -123,20 +125,19 @@ uint16_t next_param = 0;
 
    Lines also in your main.c, e.g. by reading these parameter from EEPROM.
  */
-#include "mavlink_types.h"
-mavlink_system_t mavlink_system;
-
-#include "mavlink_send_bridge.h"
-#include "mavlink_debug.h"
+//#include "mavlink_types.h"
+//mavlink_system_t mavlink_system;
+//
+//#include "mavlink_send_bridge.h"
+//#include "mavlink_debug.h"
 
 static mavlink_message_t rx_msg;
 //static mavlink_message_t tx_msg;
 static mavlink_status_t rx_status;
 static uint8_t mavlinkTxBuf[MAVLINK_MAX_PACKET_LEN];
 
-#include "common/mavlink.h"
-#include "mavlink_settings_adapter.h"
-#include "mavlink_parameters_openpilot.h"
+//#include "common/mavlink.h"
+#include "uavobjectmavlinksettings.h"
 
 /* 3: Define waypoint helper functions */
 void mavlink_missionlib_send_message(mavlink_message_t* msg);
@@ -503,14 +504,12 @@ static void processObjEvent(UAVObjEvent * ev)
 
 			mavlink_msg_heartbeat_send(MAVLINK_COMM_0, mavlink_system.type, mavClass, base_mode, custom_mode, system_state);
 
-			uint8_t ucCpuLoad;
-			SystemStatsCPULoadGet(&ucCpuLoad);
+			SystemStatsData stats;
+			SystemStatsGet(&stats);
 			FlightBatteryStateData flightBatteryData;
 			FlightBatteryStateGet(&flightBatteryData);
 			FlightBatterySettingsData flightBatterySettings;
 			FlightBatterySettingsGet(&flightBatterySettings);
-
-//			PIOS_COM_SendFormattedString(PIOS_COM_DEBUG, "telem batt voltage %d\r\n", (int)(flightBatteryData.Voltage*1000));
 
 			uint16_t batteryVoltage = (uint16_t)(flightBatteryData.Voltage*1000.0f);
 			int16_t batteryCurrent = -1; // -1: Not present / not estimated
@@ -528,7 +527,7 @@ static void processObjEvent(UAVObjEvent * ev)
 			//				batteryCurrent = flightBatteryData.Current*100;
 			//			}
 
-				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, (uint16_t)(ucCpuLoad*3.9215686f*1000), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
+				mavlink_msg_sys_status_send(MAVLINK_COMM_0, 0xFF, 0xFF, 0xFF, ((uint16_t)stats.CPULoad*10), batteryVoltage, batteryCurrent, batteryPercent, 0, 0, 0, 0, 0, 0);
 //				// Copy the message to the send buffer
 //				uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
 //				// Send buffer
@@ -638,6 +637,42 @@ static void processObjEvent(UAVObjEvent * ev)
 			PIOS_COM_SendBufferNonBlocking(telemetryPort, mavlinkTxBuf, len);
 		}
 		break;
+		case ACTUATORCOMMAND_OBJID:
+		{
+			mavlink_rc_channels_scaled_t rc;
+			float val;
+			ManualControlCommandRollGet(&val);
+			rc.chan1_scaled = val*1000;
+			ManualControlCommandPitchGet(&val);
+			rc.chan2_scaled = val*1000;
+			ManualControlCommandYawGet(&val);
+			rc.chan3_scaled = val*1000;
+			ManualControlCommandThrottleGet(&val);
+			rc.chan4_scaled = val*1000;
+
+			ActuatorCommandData act;
+			ActuatorCommandGet(&act);
+
+			rc.chan5_scaled = act.Channel[0];
+			rc.chan6_scaled = act.Channel[1];
+			rc.chan7_scaled = act.Channel[2];
+			rc.chan8_scaled = act.Channel[3];
+
+			ManualControlCommandData cmd;
+			ManualControlCommandGet(&cmd);
+
+			rc.rssi = ((uint8_t)(cmd.Connected == MANUALCONTROLCOMMAND_CONNECTED_TRUE))*255;
+			rc.port = 0;
+
+			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);
+
+
+			// Copy the message to the send buffer
+			uint16_t len = mavlink_msg_to_send_buffer(mavlinkTxBuf, &msg);
+			// Send buffer
+			PIOS_COM_SendBufferNonBlocking(PIOS_COM_TELEM_RF, mavlinkTxBuf, len);
+			break;
+		}
 		case MANUALCONTROLCOMMAND_OBJID:
 		{
 			mavlink_rc_channels_scaled_t rc;
@@ -655,7 +690,11 @@ static void processObjEvent(UAVObjEvent * ev)
 			rc.chan6_scaled = 0;
 			rc.chan7_scaled = 0;
 			rc.chan8_scaled = 0;
-			rc.rssi = 0;
+
+			ManualControlCommandData cmd;
+			ManualControlCommandGet(&cmd);
+
+			rc.rssi = ((uint8_t)(cmd.Connected == MANUALCONTROLCOMMAND_CONNECTED_TRUE))*255;
 			rc.port = 0;
 
 			mavlink_msg_rc_channels_scaled_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &rc);

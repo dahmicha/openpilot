@@ -46,7 +46,7 @@ using namespace std;
  * print usage info
  */
 void usage() {
-    cout << "Usage: uavobjectgenerator [-gcs] [-flight] [-java] [-python] [-matlab] [-none] [-v] xml_path template_base [UAVObj1] ... [UAVObjN]" << endl;
+    cout << "Usage: uavobjectgenerator [-gcs] [-flight] [-java] [-python] [-matlab] [-none] [-v] input_path template_base [UAVObj1] ... [UAVObjN]" << endl;
     cout << "Languages: "<< endl;
     cout << "\t-gcs           build groundstation code" << endl;
     cout << "\t-flight        build flight code" << endl;
@@ -57,7 +57,7 @@ void usage() {
     cout << "\tIf no language is specified ( and not -none ) -> all are built." << endl;
     cout << "Misc: "<< endl;
     cout << "\t-none          build no language - just parse xml's" << endl;
-    cout << "\t-h             this help" << endl;
+    cout << "\t-h --help      this help" << endl;
     cout << "\t-v             verbose" << endl;
     cout << "\tinput_path     path to UAVObject definition (.xml) files." << endl;
     cout << "\ttemplate_path  path to the root of the OpenPilot source tree." << endl;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     for (int argi=1;argi<argc;argi++)
         arguments_stringlist << argv[argi];
 
-    if ((arguments_stringlist.removeAll("-h")>0)||(arguments_stringlist.removeAll("-h")>0)) {
+    if ((arguments_stringlist.removeAll("-h")>0)||(arguments_stringlist.removeAll("--help")>0)) {
       usage();
       return RETURN_OK; 
     }
@@ -105,9 +105,10 @@ int main(int argc, char *argv[])
     bool do_java=(arguments_stringlist.removeAll("-java")>0);
     bool do_python=(arguments_stringlist.removeAll("-python")>0);
     bool do_matlab=(arguments_stringlist.removeAll("-matlab")>0);
+    bool do_mavlink=(arguments_stringlist.removeAll("-mavlink")>0);
     bool do_none=(arguments_stringlist.removeAll("-none")>0); //
 
-    bool do_all=((do_gcs||do_flight||do_java||do_python||do_matlab)==false);
+    bool do_all=((do_gcs||do_flight||do_java||do_python||do_matlab||do_mavlink)==false);
     bool do_allObjects=true;
 
     if (arguments_stringlist.length() >= 2) {
@@ -230,6 +231,13 @@ int main(int argc, char *argv[])
         cout << "generating matlab code" << endl ;
         UAVObjectGeneratorMatlab matlabgen;
         matlabgen.generate(parser,templatepath,outputpath);
+    }
+
+    // generate matlab code if wanted
+    if (do_mavlink|do_all) {
+        cout << "generating UAVObj settings adapter code for MAVLink" << endl ;
+        UAVObjectGeneratorMAVLink mavlinkgen;
+        mavlinkgen.generate(parser,templatepath,outputpath);
     }
 
     return RETURN_OK;

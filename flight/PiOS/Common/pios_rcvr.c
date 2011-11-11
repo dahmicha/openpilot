@@ -90,6 +90,20 @@ int32_t PIOS_RCVR_Read(uint32_t rcvr_id, uint8_t channel)
   return rcvr_dev->driver->read(rcvr_dev->lower_id, channel);
 }
 
+uint8_t PIOS_RCVR_GetRSSI(uint32_t rcvr_id)
+{
+  struct pios_rcvr_dev * rcvr_dev = (struct pios_rcvr_dev *)rcvr_id;
+
+  if (!PIOS_RCVR_validate(rcvr_dev)) {
+    /* Undefined RCVR port for this board (see pios_board.c) */
+    PIOS_Assert(0);
+  }
+
+  PIOS_DEBUG_Assert(rcvr_dev->driver->rssi);
+
+  return rcvr_dev->driver->rssi(rcvr_dev->lower_id);
+}
+
 #endif
 
 /**

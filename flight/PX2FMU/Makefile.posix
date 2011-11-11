@@ -149,7 +149,6 @@ SRC += $(OPSYSTEM)/openpilot.c
 SRC += $(OPSYSTEM)/pios_board_posix.c
 SRC += $(OPSYSTEM)/alarms.c
 SRC += $(OPSYSTEM)/taskmonitor.c
-SRC += $(OPSYSTEM)/mavlink_debug.c
 SRC += $(OPUAVTALK)/uavtalk.c
 SRC += $(OPUAVOBJ)/uavobjectmanager.c
 SRC += $(OPUAVOBJ)/eventdispatcher.c
@@ -180,9 +179,9 @@ SRC += $(PIOSPOSIX)/pios_sdcard.c
 SRC += $(PIOSPOSIX)/pios_udp.c
 SRC += $(PIOSPOSIX)/pios_com.c
 SRC += $(PIOSPOSIX)/pios_servo.c
+SRC += $(PIOSPOSIX)/pios_adc.c
 SRC += $(PIOSPOSIX)/pios_wdg.c
 SRC += $(PIOSPOSIX)/pios_debug.c
-
 SRC += $(PIOSPOSIX)/pios_rcvr.c
 
 
@@ -325,6 +324,9 @@ endif
 
 CFLAGS += $(CFLAGS_UAVOBJECTS)
 CFLAGS += -DARCH_POSIX
+CDEFS += -DMAVLINK_USE_CONVENIENCE_FUNCTIONS
+CDEFS += -DPX2MODE
+CDEFS += -DPX2FMU
 CFLAGS += -O$(OPT)
 CFLAGS += -mtune=$(MCU)
 CFLAGS += $(CDEFS)

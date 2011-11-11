@@ -31,7 +31,11 @@
 
 #if defined(STM32F2XX)
 # include "stm32f2xx_tim.h"
-#else
+#endif
+#if defined(STM32F4XX)
+# inclued "stm32f4xx_tim.h"
+#endif
+#if !defined(STM32F2XX) && !defined(STM32F4XX)
 # include "stm32f10x_tim.h"
 #endif
 
