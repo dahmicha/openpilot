@@ -185,7 +185,7 @@ void attitude_tobi_laurens_init(void)
 	};
 	//offset update only correct if not upside down.
 
-#define K 10*TIME_STEP
+#define K 10.0f*TIME_STEP
 
 	static m_elem kal_gain_start[12 * 9] =
 	{ K, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -245,7 +245,7 @@ void attitude_tobi_laurens(const float_vect3 *accel, const float_vect3 *mag, con
 	m_elem measurement[9] =
 	{ };
 	m_elem mask[9] =
-	{ 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+	{ 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
 //	float_vect3 acc;
 //	float_vect3 mag;

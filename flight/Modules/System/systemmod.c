@@ -57,7 +57,7 @@
 
 #ifndef IDLE_COUNTS_PER_SEC_AT_NO_LOAD
 #ifdef STM32F2XX
-#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 995998  // STM32F2xx, calibrated by running tests/test_cpuload.c
+#define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 509528 // STM32F2xx, calibrated by running tests/test_cpuload.c
 #endif
 #ifdef STM32F4XX
 #define IDLE_COUNTS_PER_SEC_AT_NO_LOAD 1467993  // STM32F4xx, calibrated by running tests/test_cpuload.c

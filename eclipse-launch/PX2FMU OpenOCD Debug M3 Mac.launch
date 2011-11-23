@@ -3,11 +3,11 @@
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.0.action" value="NONE"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.0.enabled" value="true"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.0.mode" value="run"/>
-<stringAttribute key="org.eclipse.cdt.launch.launchGroup.0.name" value="OpenOCD Debug Daemon Mac"/>
+<stringAttribute key="org.eclipse.cdt.launch.launchGroup.0.name" value="OpenOCD Debug M3 Daemon Mac"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.action" value="NONE"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.enabled" value="true"/>
 <stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.mode" value="debug"/>
-<stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.name" value="openpilot-flight PX2FMU"/>
+<stringAttribute key="org.eclipse.cdt.launch.launchGroup.1.name" value="openpilot-flight PX2FMU M3"/>
 <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
 </listAttribute>

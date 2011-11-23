@@ -100,8 +100,6 @@ static xTaskHandle magTaskHandle;
 static volatile struct sample_buffer sampleBuffer[2];
 static struct pios_hmc5883_data savedMagData;
 static volatile int activeSample = 0;
-//static float accelKi = 0;
-//static float accelKp = 0;
 //static float yawBiasRate = 0;
 //static bool zero_during_arming = false;
 
@@ -242,8 +240,8 @@ static void sensorTask(void *parameters)
 	volatile struct sample_buffer *sb;
 	int ac;	// local copy to avoid aliasing rules
 	int gc;	// local copy to avoid aliasing rules
-
-	vTaskDelay(1);
+//
+//	vTaskDelay(1);
 
 	portTickType lastSysTime;
 
@@ -294,9 +292,6 @@ static void magTask(void *parameters)
 	volatile struct sample_buffer *sb;
 	int mc;	// local copy to avoid aliasing rules
 
-
-	vTaskDelay(1);
-
 	portTickType lastSysTime;
 
 	lastSysTime = xTaskGetTickCount();
@@ -338,8 +333,6 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 	// exchange sample buffers
 	activeSample = other_sample;
 
-	//vTaskDelay(1);	//TODO XXX FIXME: why does the mag update only every 2 sec if this is not here - there has to be an sync problem with the buffer
-
 	// and now address the fresh sample buffer, containing the last polling period's data
 	other_sample = activeSample ^ 1;
 	sb = &sampleBuffer[other_sample];
@@ -370,7 +363,8 @@ static void updateSensors(AttitudeRawData * attitudeRaw)
 		// XXX what to do here, if anything?
 	}
 
-#if 1 // Enable oversampling
+#if 1
+	// Enable oversampling
 	// Accumulate measurements (oversampling)
 	{
 #if 1 // Normal lowpass, no moving average
@@ -514,45 +508,23 @@ static void updateAttitude(AttitudeRawData * attitudeRaw)
 
 
 	attitude_tobi_laurens(&accel, &mag, &gyro);
-
-
-//	attitude_observer_correct_accel(accel, 1/200.0f);
-//
-//#if 1
-//	attitude_observer_correct_magnet(mag, 1/200.0f);
-//#endif
-//
-//	attitude_observer_correct_gyro(gyro);
-
-//	float_vect3 tmp;//, angularRates;
-//	attitude_tobi_laurens_get_euler(&tmp);
-//	attitude_observer_get_angles(&angles, &angularRates);
 	AttitudeMatrixData attitudeMatrix;
 
 	attitude_tobi_laurens_get_all((float_vect3 *) &(attitudeMatrix.Roll), (float_vect3 *)&(attitudeMatrix.AngularRates[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[0]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[3]), (float_vect3 *)&(attitudeMatrix.RotationMatrix[6]));
 	AttitudeMatrixSet(&attitudeMatrix);
 
-//	debug_vect("ang", (float_vect3 *) &(attitudeMatrix.Roll));
-//	debug_vect("x_n_b", (float_vect3 *)
-
-//	attitudeMatrix.Roll=tmp.x;
-//	attitudeMatrix.Pitch=tmp.y;
-//	attitudeMatrix.Yaw=tmp.z;
-//	debug_vect("rates",attitudeMatrix.AngularRates[0],attitudeMatrix.AngularRates[1],attitudeMatrix.AngularRates[2]);
-
 	AttitudeActualData attitudeActual;
 	attitudeActual.Roll  = attitudeMatrix.Roll * 57.2957795f;
 	attitudeActual.Pitch = attitudeMatrix.Pitch * 57.2957795f;
 	attitudeActual.Yaw   = attitudeMatrix.Yaw* 57.2957795f;
+	// Set quaternion attitude
+	RPY2Quaternion(&attitudeActual.Roll, &attitudeActual.q1);
 
 	attitudeActual.RollRate  = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_X] * 57.2957795f;
 	attitudeActual.PitchRate = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Y] * 57.2957795f;
 	attitudeActual.YawRate   = attitudeMatrix.AngularRates[ATTITUDEMATRIX_ANGULARRATES_Z] * 57.2957795f;
 
 	AttitudeActualSet(&attitudeActual);
-
-
-	//attitude_observer_predict(1/200.0f);
 }
 
 

@@ -2,6 +2,6 @@
 <launchConfiguration type="org.eclipse.ui.externaltools.ProgramLaunchConfigurationType">
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE" value="${none}"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="/Users/lomeier/sat/bin/openocd"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--search /Users/lomeier/cm3/share/openocd --search flight/Project/OpenOCD -f interface/jtagkey-tiny.cfg -f stm32f2xx.cfg -c &quot;init&quot;  -c &quot;target_request debugmsgs enable&quot; -c &quot;reset halt&quot; -c &quot;reset run&quot;"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--search /Users/lomeier/cm3/share/openocd --search flight/Project/OpenOCD -f interface/jtagkey-tiny.cfg -f stm32f2x.cfg -c &quot;init&quot;  -c &quot;target_request debugmsgs enable&quot; -c &quot;reset halt&quot; -c &quot;reset run&quot;"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${workspace_loc:/openpilot-flight}"/>
 </launchConfiguration>
